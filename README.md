@@ -23,7 +23,8 @@ Os competidores podem receber premiações dependendo de seu desempenho em certa
 
 ### Modelo conceitual
 
-<img width="1422" height="779" alt="MERpjbd1" src="https://github.com/user-attachments/assets/a17ed3ff-a9a2-4cc4-8a4d-a11197237f37" />
+<img width="1451" height="838" alt="MERBD1" src="https://github.com/user-attachments/assets/3287bbae-53db-4836-b861-f5913de00957" />
+
 
 ### Modelo relacional
 
@@ -46,4 +47,4 @@ AGGR_SUBMISSAO_EQUIPE_SIMUL = {PK FK ID_COMPETICAO, PK FK ID_ORG_COMPETICAO, PK 
 
 ### Modelo lógico
 
-O modelo lógico do projeto está no arquivo ./main.sql
+O modelo lógico do projeto está no arquivo ./sql/main.sql
