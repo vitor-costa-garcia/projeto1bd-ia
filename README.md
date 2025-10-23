@@ -1,4 +1,4 @@
-## Sistema de avaliação de I.A
+ ## Sistema de avaliação de I.A
 Disciplina: BANCO DE DADOS I\
 Docente: Anderson Paulo Avila Santos\
 Discentes: André Tomonaga Schettini | Vitor da Costa Garcia
