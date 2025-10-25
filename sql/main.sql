@@ -14,7 +14,7 @@ CREATE TABLE usuario(
 
 CREATE TABLE usuario_tipo(
     id_usuario INT NOT NULL,
-    tipo INT NOT NULL CHECK(tipo = 0 OR tipo = 1),
+    tipo VARCHAR(11) NOT NULL CHECK(tipo IN ('ORGANIZADOR', 'COMPETIDOR')),
     CONSTRAINT "PK_ID_USUARIO_TIPO" PRIMARY KEY (id_usuario, tipo),
     CONSTRAINT "FK_ID_USUARIO_TIPO" FOREIGN KEY (id_usuario) REFERENCES usuario(id)
 );
