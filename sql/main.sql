@@ -109,14 +109,14 @@ CREATE TABLE premios_competidor_pred(
 );
 
 CREATE TABLE submissao_equipe_pred(
+    id_equipe INT NOT NULL,
     id_competicao INT NOT NULL,
     id_org_competicao INT NOT NULL,
-    id_equipe INT NOT NULL,
     data_hora_envio TIMESTAMP NOT NULL,
     arq_submissao VARCHAR(200) NOT NULL,
     score REAL NOT NULL,
-    CONSTRAINT "PK_SUBMISSAO_EQUIPE_PRED" PRIMARY KEY (id_competicao, id_org_competicao, id_equipe, data_hora_envio),
-    CONSTRAINT "FK_SUBMISSAO_EQUIPE_PRED" FOREIGN KEY (id_competicao, id_org_competicao, id_equipe) REFERENCES equipe_pred(id_competicao, id_org_competicao, id)
+    CONSTRAINT "PK_SUBMISSAO_EQUIPE_PRED" PRIMARY KEY (id_equipe, id_competicao, id_org_competicao, data_hora_envio),
+    CONSTRAINT "FK_SUBMISSAO_EQUIPE_PRED" FOREIGN KEY (id_equipe, id_competicao, id_org_competicao) REFERENCES equipe_pred(id, id_competicao, id_org_competicao)
 )
 
 CREATE TABLE competicao_simul(
@@ -191,12 +191,12 @@ CREATE TABLE premios_competidor_simul(
 );
 
 CREATE TABLE submissao_equipe_simul(
+    id_equipe INT NOT NULL,
     id_competicao INT NOT NULL,
     id_org_competicao INT NOT NULL,
-    id_equipe INT NOT NULL,
     data_hora_envio TIMESTAMP NOT NULL,
     arq_submissao VARCHAR(200) NOT NULL,
     score REAL NOT NULL,
-    CONSTRAINT "PK_SUBMISSAO_EQUIPE_COMP_SIMUL" PRIMARY KEY (id_competicao, id_org_competicao, id_equipe, data_hora_envio),
-    CONSTRAINT "FK_SUBMISSAO_EQUIPE_COMP_SIMUL" FOREIGN KEY (id_competicao, id_org_competicao, id_equipe) REFERENCES equipe_simul(id_competicao, id_org_competicao, id)
+    CONSTRAINT "PK_SUBMISSAO_EQUIPE_COMP_SIMUL" PRIMARY KEY (id_equipe, id_competicao, id_org_competicao, data_hora_envio),
+    CONSTRAINT "FK_SUBMISSAO_EQUIPE_COMP_SIMUL" FOREIGN KEY (id_equipe, id_competicao, id_org_competicao) REFERENCES equipe_simul(id, id_competicao, id_org_competicao)
 )
