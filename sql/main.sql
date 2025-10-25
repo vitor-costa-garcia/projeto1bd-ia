@@ -117,7 +117,7 @@ CREATE TABLE submissao_equipe_pred(
     score REAL NOT NULL,
     CONSTRAINT "PK_SUBMISSAO_EQUIPE_PRED" PRIMARY KEY (id_equipe, id_competicao, id_org_competicao, data_hora_envio),
     CONSTRAINT "FK_SUBMISSAO_EQUIPE_PRED" FOREIGN KEY (id_equipe, id_competicao, id_org_competicao) REFERENCES equipe_pred(id, id_competicao, id_org_competicao)
-)
+);
 
 CREATE TABLE competicao_simul(
     id_competicao SERIAL NOT NULL,
