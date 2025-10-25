@@ -1,12 +1,10 @@
--- CREATE DATABASE sistema_comp_ia;
-
 CREATE TABLE usuario(
     id SERIAL NOT NULL,
-    nome VARCHAR(20) NOT NULL,
+    nome VARCHAR(50) NOT NULL,
     email VARCHAR(100) NOT NULL,
     senha CHAR(128) NOT NULL,
     datanascimento DATE NOT NULL,
-    numero INT,
+    numero VARCHAR(25),
     rua VARCHAR(50),
     cidade VARCHAR(50),
     estado VARCHAR(50),
@@ -25,14 +23,15 @@ CREATE TABLE organizador(
     id_usuario INT NOT NULL,
     cpf VARCHAR(14) NOT NULL,
     CONSTRAINT "PK_ID_USUARIO_ORGANIZADOR" PRIMARY KEY (id_usuario),
-    CONSTRAINT "UNIQUE_CPF_ORGANIZADOR" UNIQUE (cpf)
+    CONSTRAINT "UNIQUE_CPF_ORGANIZADOR" UNIQUE (cpf),
+    CONSTRAINT "FK_ID_USUARIO_ORGANIZADOR" FOREIGN KEY (id_usuario) REFERENCES usuario(id)
 );
 
 CREATE TABLE patrocinador(
     cnpj VARCHAR(18) NOT NULL,
     nome_fantasia VARCHAR(30) NOT NULL,
     endereco VARCHAR(100) NOT NULL,
-    telefone VARCHAR(14) NOT NULL,
+    telefone VARCHAR(20) NOT NULL,
     CONSTRAINT "PK_PATROCINADOR" PRIMARY KEY (cnpj)
 );
 
@@ -40,11 +39,28 @@ CREATE TABLE competicao_pred(
     id_competicao SERIAL NOT NULL,
     id_org_competicao INT NOT NULL,
     flg_oficial INT NOT NULL CHECK(flg_oficial BETWEEN 0 AND 1),
-    dataset_tt VARCHAR(200) NOT NULL, -- Caminho do arquivo
-    dataset_submissao VARCHAR(200) NOT NULL, --
-    dataset_gabarito VARCHAR(200) NOT NULL, --
+    titulo VARCHAR(100) NOT NULL,
+    descricao TEXT,
+    dificuldade VARCHAR(10) NOT NULL CHECK(dificuldade IN ('INICIANTE', 'INTERMEDIARIO', 'AVANCADO')),
+    data_criacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    data_inicio TIMESTAMP NOT NULL,
+    data_fim TIMESTAMP NOT NULL,
+    metrica_desempenho VARCHAR(20) NOT NULL CHECK(metrica_desempenho IN (
+        'ACURACIA',
+        'PRECISAO',
+        'RECALL',
+        'F1',
+        'MSE',
+        'MAE',
+        'RMSE',
+        'R2'
+    )),
+    dataset_tt VARCHAR(200) NOT NULL,
+    dataset_submissao VARCHAR(200) NOT NULL,
+    dataset_gabarito VARCHAR(200) NOT NULL,
     cnpj_patrocinador VARCHAR(18) CHECK((flg_oficial = 1 AND cnpj_patrocinador IS NOT NULL) OR (flg_oficial = 0 AND cnpj_patrocinador IS NULL)),
-    premiacao MONEY CHECK((flg_oficial = 1 AND cnpj_patrocinador IS NOT NULL) OR (flg_oficial = 0 AND cnpj_patrocinador IS NULL)),
+    premiacao DECIMAL(10,2) CHECK((flg_oficial = 1 AND cnpj_patrocinador IS NOT NULL) OR (flg_oficial = 0 AND cnpj_patrocinador IS NULL)),
+    CONSTRAINT "check_datas_comp_pred" CHECK (data_inicio >= data_criacao AND data_fim >= data_inicio),
     CONSTRAINT "PK_COMPETICAO_PRED" PRIMARY KEY (id_competicao, id_org_competicao),
     CONSTRAINT "FK_ID_PATROCINADOR_COMP_PRED" FOREIGN KEY (cnpj_patrocinador) REFERENCES patrocinador(cnpj)
 );
@@ -86,7 +102,7 @@ CREATE TABLE premios_competidor_pred(
     data_recebimento DATE NOT NULL,
     tipo INT NOT NULL CHECK(tipo BETWEEN 0 AND 3),
     classificacao INT NOT NULL,
-    valor MONEY,
+    valor DECIMAL(10,2),
     CONSTRAINT "PK_PREMIOS_COMP_PRED" PRIMARY KEY (id_competidor, id_competicao, id_org_competicao, data_recebimento, tipo),
     CONSTRAINT "FK_COMPETICAO_PRED_PREMIO" FOREIGN KEY (id_competicao, id_org_competicao) REFERENCES competicao_pred(id_competicao, id_org_competicao),
     CONSTRAINT "FK_COMPETIDOR_COMP_PRED" FOREIGN KEY (id_competidor) REFERENCES usuario(id)
@@ -107,9 +123,26 @@ CREATE TABLE competicao_simul(
     id_competicao SERIAL NOT NULL,
     id_org_competicao INT NOT NULL,
     flg_oficial INT NOT NULL CHECK(flg_oficial BETWEEN 0 AND 1),
-    ambiente VARCHAR(200) NOT NULL, --Caminho arquivo
+    titulo VARCHAR(100) NOT NULL,
+    descricao TEXT,
+    dificuldade VARCHAR(10) NOT NULL CHECK(dificuldade IN ('INICIANTE', 'INTERMEDIARIO', 'AVANCADO')),
+    data_criacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    data_inicio TIMESTAMP NOT NULL,
+    data_fim TIMESTAMP NOT NULL,
+    metrica_desempenho VARCHAR(20) NOT NULL CHECK(metrica_desempenho IN (
+        'PONTUACAO_TOTAL',
+        'TEMPO_CONCLUSAO',
+        'PASSOS_EXECUTADOS',
+        'RECURSOS_COLETADOS',
+        'OBJETIVOS_ATINGIDOS',
+        'SOBREVIVENCIA',
+        'CUSTO_TOTAL',
+        'RECOMPENSA_MEDIA'
+    )),
+    ambiente VARCHAR(200) NOT NULL,
     cnpj_patrocinador VARCHAR(18) CHECK((flg_oficial = 1 AND cnpj_patrocinador IS NOT NULL) OR (flg_oficial = 0 AND cnpj_patrocinador IS NULL)),
-    premiacao MONEY CHECK((flg_oficial = 1 AND cnpj_patrocinador IS NOT NULL) OR (flg_oficial = 0 AND cnpj_patrocinador IS NULL)),
+    premiacao DECIMAL(10,2) CHECK((flg_oficial = 1 AND cnpj_patrocinador IS NOT NULL) OR (flg_oficial = 0 AND cnpj_patrocinador IS NULL)),
+    CONSTRAINT "check_datas_comp_simul" CHECK (data_inicio >= data_criacao AND data_fim >= data_inicio),
     CONSTRAINT "PK_COMPETICAO_SIMUL_OFC" PRIMARY KEY (id_competicao, id_org_competicao),
     CONSTRAINT "FK_ID_PATROCINADOR_COMP_SIMUL" FOREIGN KEY (cnpj_patrocinador) REFERENCES patrocinador(cnpj)
 );
@@ -151,7 +184,7 @@ CREATE TABLE premios_competidor_simul(
     data_recebimento DATE NOT NULL,
     tipo INT NOT NULL CHECK(tipo BETWEEN 0 AND 3),
     classificacao INT NOT NULL,
-    valor MONEY,
+    valor DECIMAL(10,2),
     CONSTRAINT "PK_PREMIOS_COMP_SIMUL" PRIMARY KEY (id_competidor, id_competicao, id_org_competicao, data_recebimento, tipo),
     CONSTRAINT "FK_COMPETICAO_SIMUL_PREMIO" FOREIGN KEY (id_competicao, id_org_competicao) REFERENCES competicao_simul(id_competicao, id_org_competicao),
     CONSTRAINT "FK_COMPETIDOR_COMP_SIMUL" FOREIGN KEY (id_competidor) REFERENCES usuario(id)
