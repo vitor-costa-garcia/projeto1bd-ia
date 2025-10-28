@@ -101,7 +101,7 @@ CREATE TABLE submissao_equipe_pred(
     score REAL NOT NULL,
     CONSTRAINT "PK_SUBMISSAO_EQUIPE_PRED" PRIMARY KEY (id_competicao, id_org_competicao, id_equipe, data_hora_envio),
     CONSTRAINT "FK_SUBMISSAO_EQUIPE_PRED" FOREIGN KEY (id_competicao, id_org_competicao, id_equipe) REFERENCES equipe_pred(id_competicao, id_org_competicao, id)
-)
+);
 
 CREATE TABLE competicao_simul(
     id_competicao SERIAL NOT NULL,
@@ -166,4 +166,4 @@ CREATE TABLE submissao_equipe_simul(
     score REAL NOT NULL,
     CONSTRAINT "PK_SUBMISSAO_EQUIPE_COMP_SIMUL" PRIMARY KEY (id_competicao, id_org_competicao, id_equipe, data_hora_envio),
     CONSTRAINT "FK_SUBMISSAO_EQUIPE_COMP_SIMUL" FOREIGN KEY (id_competicao, id_org_competicao, id_equipe) REFERENCES equipe_simul(id_competicao, id_org_competicao, id)
-)
+);
