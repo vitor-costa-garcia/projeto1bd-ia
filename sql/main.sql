@@ -60,7 +60,7 @@ CREATE TABLE competicao_pred(
     dataset_gabarito VARCHAR(200) NOT NULL,
     cnpj_patrocinador VARCHAR(18) CHECK((flg_oficial = 1 AND cnpj_patrocinador IS NOT NULL) OR (flg_oficial = 0 AND cnpj_patrocinador IS NULL)),
     premiacao DECIMAL(10,2) CHECK((flg_oficial = 1 AND cnpj_patrocinador IS NOT NULL) OR (flg_oficial = 0 AND cnpj_patrocinador IS NULL)),
-    CONSTRAINT "check_datas_comp_pred" CHECK (data_inicio >= data_criacao AND data_fim >= data_inicio),
+    CONSTRAINT "CHECK_DATAS_COMPETICAO_PRED" CHECK (data_inicio >= data_criacao AND data_fim >= data_inicio),
     CONSTRAINT "PK_COMPETICAO_PRED" PRIMARY KEY (id_competicao, id_org_competicao),
     CONSTRAINT "FK_ID_PATROCINADOR_COMP_PRED" FOREIGN KEY (cnpj_patrocinador) REFERENCES patrocinador(cnpj)
 );
@@ -117,7 +117,7 @@ CREATE TABLE submissao_equipe_pred(
     score REAL NOT NULL,
     CONSTRAINT "PK_SUBMISSAO_EQUIPE_PRED" PRIMARY KEY (id_equipe, id_competicao, id_org_competicao, data_hora_envio),
     CONSTRAINT "FK_SUBMISSAO_EQUIPE_PRED" FOREIGN KEY (id_equipe, id_competicao, id_org_competicao) REFERENCES equipe_pred(id, id_competicao, id_org_competicao)
-)
+);
 
 CREATE TABLE competicao_simul(
     id_competicao SERIAL NOT NULL,
@@ -142,7 +142,7 @@ CREATE TABLE competicao_simul(
     ambiente VARCHAR(200) NOT NULL,
     cnpj_patrocinador VARCHAR(18) CHECK((flg_oficial = 1 AND cnpj_patrocinador IS NOT NULL) OR (flg_oficial = 0 AND cnpj_patrocinador IS NULL)),
     premiacao DECIMAL(10,2) CHECK((flg_oficial = 1 AND cnpj_patrocinador IS NOT NULL) OR (flg_oficial = 0 AND cnpj_patrocinador IS NULL)),
-    CONSTRAINT "check_datas_comp_simul" CHECK (data_inicio >= data_criacao AND data_fim >= data_inicio),
+    CONSTRAINT "CHECK_DATAS_COMPETICAO_SIMUL" CHECK (data_inicio >= data_criacao AND data_fim >= data_inicio),
     CONSTRAINT "PK_COMPETICAO_SIMUL_OFC" PRIMARY KEY (id_competicao, id_org_competicao),
     CONSTRAINT "FK_ID_PATROCINADOR_COMP_SIMUL" FOREIGN KEY (cnpj_patrocinador) REFERENCES patrocinador(cnpj)
 );
@@ -199,4 +199,4 @@ CREATE TABLE submissao_equipe_simul(
     score REAL NOT NULL,
     CONSTRAINT "PK_SUBMISSAO_EQUIPE_COMP_SIMUL" PRIMARY KEY (id_equipe, id_competicao, id_org_competicao, data_hora_envio),
     CONSTRAINT "FK_SUBMISSAO_EQUIPE_COMP_SIMUL" FOREIGN KEY (id_equipe, id_competicao, id_org_competicao) REFERENCES equipe_simul(id, id_competicao, id_org_competicao)
-)
+);
