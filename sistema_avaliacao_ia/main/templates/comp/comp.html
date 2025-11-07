@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predicto - Competições</title>
+</head>
+<body>
+    <h1>Competições</h1>
+    <button>Predição</button>
+    <button>Simulação</button>
+
+    <table>
+        <caption>Competições</caption>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Título</th>
+                <th>Tipo</th>
+                <th>Organizador</th>
+                <th>Data início</th>
+                <th>Data fim</th>
+                <th>Dificuldade</th>
+                <th>Oficial</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for comp in competitions %}
+            <tr>
+                <td>{{ comp.0 }}</td>
+                <td>{{ comp.1 }}</td>
+                <td>{{ comp.2 }}</td>
+                <td>{{ comp.3 }}</td>
+                <td>{{ comp.4 }}</td>
+                <td>{{ comp.5 }}</td>
+                <td>{{ comp.7 }}</td>
+                <td>{% if comp.6 == 0 %}Não{% else %}Sim{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

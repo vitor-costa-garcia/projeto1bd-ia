@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predicto - Rankings</title>
+</head>
+<body>
+    <h1>Ranking</h1>
+    <button>Global</button>
+    <button>Medalhas</button>
+    <button>Classificação</button>
+    <button>Competições predição</button>
+    <button>Competições simulação</button>
+    <table>
+        <caption>Ranking global de pontos</caption>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Pontos</th>
+                <th>Classificação</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in rankinglist %}
+            <tr>
+                <td>{{ user.0 }}</td>
+                <td>{{ user.1 }}</td>
+                <td>{{ user.2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
