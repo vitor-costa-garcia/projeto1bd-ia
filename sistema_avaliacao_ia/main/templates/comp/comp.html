@@ -6,6 +6,18 @@
     <title>Predicto - Competições</title>
 </head>
 <body>
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                {% if message.tags == 'success' %}
+                    <li style="color: green; list-style: none;"><b>{{ message }}</b></li>
+                {% else %}
+                    <li style="color: red; list-style: none;"><b>{{ message }}</b></li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    {% endif %}
+    
     <h1>Competições</h1>
     <button>Predição</button>
     <button>Simulação</button>
