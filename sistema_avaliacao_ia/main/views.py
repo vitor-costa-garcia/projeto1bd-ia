@@ -2,12 +2,19 @@ from django.db import connection
 from django.shortcuts import redirect, render
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
-from api.queries.user_queries import get_all_user
+from api.queries.user_queries import fetch_user_auth_data_by_email, get_all_user
 from api.queries.comp_queries import get_all_competitions
 import requests
 
 def index(request):
-    return render(request, "index.html")
+    if request.session.get('user_id'):
+        context = {
+            'user_id': request.session.get('user_id'),
+            'user_name': request.session.get('user_name')
+        }
+        return render(request, "index.html", context)
+    else:
+        return redirect('main:login')
 
 def comp(request):
     resp = requests.get("http://127.0.0.1:8000/api/comp/get-all-competitions/")
@@ -41,12 +48,7 @@ def login_view(request):
         email = request.POST.get('email')
         senha_form = request.POST.get('senha')
 
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT id, nome, senha FROM usuario WHERE email = %s",
-                [email]
-            )
-            user_data = cursor.fetchone()
+        user_data = fetch_user_auth_data_by_email(email)
 
         if user_data and check_password(senha_form, user_data[2]):
             request.session['user_id'] = user_data[0]
@@ -60,6 +62,7 @@ def login_view(request):
         return render(request, 'login.html')
 
     return render(request, 'login.html')
+
 def register_view(request):
     if request.method == 'POST':
         payload = {
@@ -89,9 +92,9 @@ def register_view(request):
         except requests.exceptions.RequestException as e:
             messages.error(request, f"Erro de conexão com a API: {e}")
 
-        return render(request, "user/user_form.html")
+        return render(request, "user/register_user.html")
 
-    return render(request, "user/user_form.html")
+    return render(request, "user/register_user.html")
 
 def logout_view(request):
     try:

@@ -9,6 +9,16 @@ def get_user(request, id):
         result = cursor.fetchall()
 
     return JsonResponse({"users": result})
+
+def fetch_user_auth_data_by_email(email):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT id, nome, senha FROM usuario WHERE email = %s",
+            [email]
+        )
+        user_data = cursor.fetchone()
+    
+    return user_data
     
 def get_all_user(request):
     with connection.cursor() as cursor:

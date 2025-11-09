@@ -1,36 +1,46 @@
-<!DOCTYPE html>
+{% load static %} <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Predicto</title>
+    
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
 </head>
 <body>
-    <h1>Login</h1>
 
-    {% if messages %}
-        <ul class="messages">
-            {% for message in messages %}
-                <li style="color: red;">{{ message }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+    <div class="auth-container">
+        <h1>Login</h1>
 
-    <form method="post" action="{% url 'main:login' %}">
-        {% csrf_token %} <label>
-            Email: <input type="email" name="email" required>
-        </label>
-        <br>
-        <label>
-            Senha: <input type="password" name="senha" required>
-        </label>
-        <br>
-        <button type="submit">Entrar</button>
-    </form>
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
 
-    <hr>
-    <p>Não tem uma conta?</p>
-    <a href="{% url 'main:register' %}">
-        <button>Registrar-se</button>
-    </a>
+        <form method="post" action="{% url 'main:login' %}">
+            {% csrf_token %} 
+            <label>
+                Email:
+                <input type="email" name="email" required>
+            </label>
+            
+            <label>
+                Senha:
+                <input type="password" name="senha" required>
+            </label>
+            
+            <button type="submit">Entrar</button>
+        </form>
+
+        <hr>
+        <p>Não tem uma conta?</p>
+        <a href="{% url 'main:register' %}">
+            <button type="button" class="btn-secondary">Registrar-se</button>
+        </a>
+    </div>
+
 </body>
 </html>
