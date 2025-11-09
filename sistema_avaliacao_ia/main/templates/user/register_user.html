@@ -1,0 +1,79 @@
+{% load static %} <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro - Predicto</title>
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+</head>
+<body>
+
+    <div class="auth-container">
+        <h1>Registro de Usuário</h1>
+        
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        <form method="post" action="{% url 'main:register' %}">
+            {% csrf_token %}
+
+            <h3>Informações Obrigatórias</h3>
+            <label>
+                Nome:
+                <input type="text" name="nome" required>
+            </label>
+            
+            <label>
+                Email:
+                <input type="email" name="email" required>
+            </label>
+            
+            <label>
+                Senha:
+                <input type="password" name="senha" required>
+            </label>
+            
+            <label>
+                Data de nascimento:
+                <input type="date" name="datanascimento" required>
+            </label>
+
+            <hr>
+            <h3>Informações de Endereço (Opcional)</h3>
+            
+            <label>
+                Número:
+                <input type="text" name="numero">
+            </label>
+            
+            <label>
+                Rua:
+                <input type="text" name="rua">
+            </label>
+            
+            <label>
+                Cidade:
+                <input type="text" name="cidade">
+            </label>
+            
+            <label>
+                Estado:
+                <input type="text" name="estado">
+            </label>
+            
+            <label>
+                País:
+                <input type="text" name="pais">
+            </label>
+
+            <button type="submit">Criar Conta</button>
+        </form>
+    </div>
+
+</body>
+</html>

@@ -1,36 +1,53 @@
-<!DOCTYPE html>
+{% load static %} <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login - Predicto</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predicto - Início</title>
+    
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+    
+    <style>
+        /* Sobrescreve o body do auth.css */
+        body { 
+            display: block; 
+            padding: 2rem;
+            background-color: #fff;
+        }
+        /* Um container simples para a home */
+        .home-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        /* Estilo básico para o header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 1rem;
+        }
+    </style>
 </head>
 <body>
-    <h1>Login</h1>
 
-    {% if messages %}
-        <ul class="messages">
-            {% for message in messages %}
-                <li style="color: red;">{{ message }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+    <div class="home-container">
+        
+        <div class="header">
+            <h2>Bem-vindo(a), {{ user_name }}!</h2>
+            
+            <a href="{% url 'main:logout' %}">
+                <button type="button" class="btn-secondary">Logout</button>
+            </a>
+        </div>
 
-    <form method="post" action="{% url 'main:login' %}">
-        {% csrf_token %} <label>
-            Email: <input type="email" name="email" required>
-        </label>
-        <br>
-        <label>
-            Senha: <input type="password" name="senha" required>
-        </label>
-        <br>
-        <button type="submit">Entrar</button>
-    </form>
+        <h1>Página inicial</h1>
+        
+        <a href="{% url 'main:comp' %}"><button>Competições</button></a>
+        <a href="{% url 'main:user-profile' %}"><button>Perfil</button></a>
+        <a href="{% url 'main:ranking' %}"><button>Ranking</button></a>
+        <a href="#"><button>FAQ</button></a>
+    </div>
 
-    <hr>
-    <p>Não tem uma conta?</p>
-    <a href="{% url 'main:register' %}">
-        <button>Registrar-se</button>
-    </a>
 </body>
 </html>

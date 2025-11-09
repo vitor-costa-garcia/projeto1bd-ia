@@ -9,5 +9,10 @@ urlpatterns = [
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
 
-    path("competicoes/", views.comp, name="comp")
+    path("user/", views.user, name="user-profile"),
+
+    path("competicoes/", views.comp, name="comp"),
+    path("competicoes/new/", views.comp_form, name="comp-form"),
+    path("ranking/", views.ranking, name="ranking"),
+    path("reports/", views.reports, name="reports"),
 ]
