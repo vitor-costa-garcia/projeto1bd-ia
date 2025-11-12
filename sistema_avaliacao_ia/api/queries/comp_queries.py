@@ -1,9 +1,10 @@
-from django.db import connection
+from django.db import IntegrityError, connection
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import FileSystemStorage
 from datetime import date
+import os
 
 def get_all_competitions(request):
     with connection.cursor() as cursor:
@@ -110,50 +111,109 @@ def get_nextseq_comp(request, type, add):
 @csrf_exempt
 def post_competition(request):
     if request.method != "POST":
-        return JsonResponse({"error":"POST only endpoint"}, status=405)
-    
-    titulo = request.POST.get('titulo')
-    descricao = request.POST.get('descricao')
-    tipo = request.POST.get('tipo')
-    dificuldade = request.POST.get('dificuldade')
-    oficial = request.POST.get('oficial')
-    metrica_desempenho = request.POST.get('metrica-desempenho')
+        return JsonResponse({"error": "POST only endpoint"}, status=405)
 
-    patrocinador = None
-    premiacao = None
-    dataset_tt = None
-    dataset_submissao = None
-    dataset_gabarito = None
-    ambiente = None
+    try:
+        data = request.POST
+        
+        id_org = data.get('id_org_competicao')
+        tipo_comp = data.get('tipo')
+        
+        flg_oficial = data.get('oficial', '0')
+        cnpj = data.get('patrocinador') or None
+        premiacao = data.get('premiacao') or None
 
-    if int(oficial) == 1:
-        patrocinador = request.POST.get('patrocinador')
-        premiacao = request.POST.get('premiacao')
+        if flg_oficial == '0':
+            cnpj = None
+            premiacao = None
+        elif flg_oficial == '1':
+            if not cnpj or not premiacao:
+                return JsonResponse({"error": "Competições oficiais devem ter CNPJ e Premiação."}, status=400)
+        
+        with connection.cursor() as cursor:
+            new_comp_id = None 
+            
+            if tipo_comp == '0':
+                metrica = data.get('metrica_predicao')
+                
+                cursor.execute(
+                    """
+                    INSERT INTO competicao_pred 
+                    (id_org_competicao, flg_oficial, titulo, descricao, dificuldade, 
+                     data_inicio, data_fim, metrica_desempenho, 
+                     cnpj_patrocinador, premiacao,
+                     dataset_tt, dataset_submissao, dataset_gabarito) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id_competicao
+                    """,
+                    [
+                        id_org, flg_oficial, data.get('titulo'), data.get('descricao'), data.get('dificuldade'),
+                        data.get('data_inicio'), data.get('data_fim'), metrica,
+                        cnpj, premiacao,
+                        'temp', 'temp', 'temp'
+                    ]
+                )
+                new_comp_id = cursor.fetchone()[0]
 
-    print(request.POST)
-    print(request.FILES)
+                f_tt = salvar_arquivo(request.FILES['dataset-tt'], new_comp_id, 'datasets')
+                f_sub = salvar_arquivo(request.FILES['dataset-submissao'], new_comp_id, 'datasets')
+                f_gab = salvar_arquivo(request.FILES['dataset-gabarito'], new_comp_id, 'datasets')
 
-    if int(tipo) == 0:
-        dataset_tt = request.FILES['dataset-tt']
-        dataset_submissao = request.FILES['dataset-submissao']
-        dataset_gabarito = request.FILES['dataset-gabarito']
+                cursor.execute(
+                    """
+                    UPDATE competicao_pred 
+                    SET dataset_tt = %s, dataset_submissao = %s, dataset_gabarito = %s
+                    WHERE id_competicao = %s AND id_org_competicao = %s
+                    """,
+                    [f_tt, f_sub, f_gab, new_comp_id, id_org]
+                )
 
-        if dataset_tt and dataset_submissao and dataset_gabarito:
-            # É NECESSARIO CRIAR LOGICA PARA PADRONIZAR O NOME DOS DATASETS
-            # QUE SÃO RECEBIDOS AO CRIAR A COMPETIÇÃO PARA CONSEGUIR FAZER
-            # A BUSCA DOS DATASETS DE DETERMINADA COMPETIÇÃO
-            nextid = get_nextseq_comp(0, True)
-            fs = FileSystemStorage(location="media/comp_pred")
-            fs.save(dataset_tt.name, dataset_tt)
-            fs.save(dataset_submissao.name, dataset_submissao)
-            fs.save(dataset_gabarito.name, dataset_gabarito)
-    else:
-        ambiente = request.FILES.get('ambiente')
-        if ambiente:
-            # MESMO PROBLEMA DE PADRONIZACAO DE NOME COM O AMBIENTE
-            # DE DETERMINADA COMPETIÇÃO. NECESSARIO CRIAR LOGICA
-            # DE NOME PARA FACILITAR BUSCA
-            fs = FileSystemStorage(location="media/comp_simul")
-            fs.save(ambiente.name, ambiente)
+            elif tipo_comp == '1':
+                metrica = data.get('metrica_simulacao')
+                
+                cursor.execute(
+                    """
+                    INSERT INTO competicao_simul
+                    (id_org_competicao, flg_oficial, titulo, descricao, dificuldade, 
+                     data_inicio, data_fim, metrica_desempenho, 
+                     cnpj_patrocinador, premiacao, ambiente)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id_competicao
+                    """,
+                    [
+                        id_org, flg_oficial, data.get('titulo'), data.get('descricao'), data.get('dificuldade'),
+                        data.get('data_inicio'), data.get('data_fim'), metrica,
+                        cnpj, premiacao,
+                        'temp'
+                    ]
+                )
+                new_comp_id = cursor.fetchone()[0]
+                
+                f_ambiente = salvar_arquivo(request.FILES['ambiente'], new_comp_id, 'ambientes')
+                
+                cursor.execute(
+                    """
+                    UPDATE competicao_simul
+                    SET ambiente = %s
+                    WHERE id_competicao = %s AND id_org_competicao = %s
+                    """,
+                    [f_ambiente, new_comp_id, id_org]
+                )
 
-    return redirect("/comp")
+            else:
+                return JsonResponse({"error": "Tipo de competição inválido. Selecione 'Predição' ou 'Simulação'."}, status=400)
+
+        return JsonResponse({"message": "Competição criada com sucesso", "id_competicao": new_comp_id}, status=201)
+
+    except IntegrityError as e:
+        return JsonResponse({"error": f"Erro de Banco de Dados: {e}"}, status=400)
+    except KeyError as e:
+        return JsonResponse({"error": f"Arquivo ou campo obrigatório faltando: {e}"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": f"Um erro inesperado ocorreu: {e}"}, status=500)
+
+def salvar_arquivo(file, id_competicao, tipo_pasta):
+    fs = FileSystemStorage(location=f"./uploads/{tipo_pasta}")
+    filename = f"{id_competicao}_{file.name}"
+    fs.save(filename, file)
+    return os.path.join(tipo_pasta, filename)

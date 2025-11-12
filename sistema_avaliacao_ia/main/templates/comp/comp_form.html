@@ -3,11 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Registro de competições</title>
 </head>
 <body>
     <h1>Registro de competições</h1>
-    <form method="post" action="/api/comp/post-competition/" enctype="multipart/form-data">
+
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li style="color: red;">{{ message }}</li>
+            {% endfor %}
+        </ul>
+        <hr>
+    {% endif %}
+    
+    <form method="post" action="{% url 'main:comp-form' %}" enctype="multipart/form-data">
         {% csrf_token %}
         <label>
             Título: <input type="text" name="titulo">
@@ -26,14 +36,11 @@
             </select>
         </label>
 
-        <label>
-            Dificuldade: 
-            <select name="dificuldade">
-                <option value="0">Muito fácil</option>
-                <option value="1">Fácil</option>
-                <option value="2">Normal</option>
-                <option value="3">Intermediário</option>
-                <option value="4">Difícil</option>
+        <label>Dificuldade: <br>
+            <select name="dificuldade" required>
+                <option value="INICIANTE">Iniciante</option>
+                <option value="INTERMEDIARIO">Intermediário</option>
+                <option value="AVANCADO">Avançado</option>
             </select>
         </label>
 
@@ -60,41 +67,62 @@
         </div>
 
         <label>
-            Data de início: <input type="date" name="data-inicio">
+            Data de início: <input type="date" name="data_inicio">
         </label>
 
         <label>
-            Data de término: <input type="date" name="data-termino">
-        </label>
-
-        <label>
-            Métrica de desempenho: 
-            <select name="metrica-desempenho">
-                <option value="">Selecione o tipo da competição</option>
-            </select>
+            Data de término: <input type="date" name="data_fim">
         </label>
 
         <div id="pred-form-input" style="display: none">
             <label>
+                Métrica de desempenho (Predição): 
+                <select name="metrica_predicao">
+                    <option value="ACURACIA">Acurácia</option>
+                    <option value="PRECISAO">Precisão</option>
+                    <option value="RECALL">Recall</option>
+                    <option value="F1">F1-Score</option>
+                    <option value="MSE">Mean Squared Error (MSE)</option>
+                    <option value="MAE">Mean Absolute Error (MAE)</option>
+                    <option value="RMSE">Root Mean Squared Error (RMSE)</option>
+                    <option value="R2">R-Squared (R²)</option>
+                </select>
+            </label>
+        
+            <label>
                 Dataset treino/teste: 
-                <input type="file" accept=".csv" name="dataset-tt">
+                <input type="file" accept=".csv" name="dataset-tt" required>
             </label>
 
             <label>
                 Dataset submissão: 
-                <input type="file" accept=".csv" name="dataset-submissao">
+                <input type="file" accept=".csv" name="dataset-submissao" required>
             </label>
 
             <label>
                 Dataset gabarito: 
-                <input type="file" accept=".csv" name="dataset-gabarito">
+                <input type="file" accept=".csv" name="dataset-gabarito" required>
             </label>
         </div>
 
         <div id="simul-form-input" style="display: none">
             <label>
+                Métrica de desempenho (Simulação): 
+                <select name="metrica_simulacao">
+                    <option value="PONTUACAO_TOTAL">Pontuação Total</option>
+                    <option value="TEMPO_CONCLUSAO">Tempo de Conclusão</option>
+                    <option value="PASSOS_EXECUTADOS">Passos Executados</option>
+                    <option value="RECURSOS_COLETADOS">Recursos Coletados</option>
+                    <option value="OBJETIVOS_ATINGIDOS">Objetivos Atingidos</option>
+                    <option value="SOBREVIVENCIA">Sobrevivência</option>
+                    <option value="CUSTO_TOTAL">Custo Total</option>
+                    <option value="RECOMPENSA_MEDIA">Recompensa Média</option>
+                </select>
+            </label>
+
+            <label>
                 Ambiente: 
-                <input type="file" accept=".py" name="ambiente">
+                <input type="file" accept=".py" name="ambiente" required>
             </label>
         </div>
         
