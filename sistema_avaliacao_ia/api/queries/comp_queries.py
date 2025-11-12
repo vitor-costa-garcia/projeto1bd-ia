@@ -3,6 +3,7 @@ from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import FileSystemStorage
+from datetime import date
 
 def get_all_competitions(request):
     with connection.cursor() as cursor:
@@ -90,6 +91,22 @@ def get_simulation_competitions(request):
         result = cursor.fetchall()
         return JsonResponse({"competitions":result})
 
+def get_nextseq_comp(request, type, add):
+    with connection.cursor() as cursor:
+        if type == 0:
+            cursor.execute("SELECT nextval('competicao_pred_id_competicao_seq');")
+            result = cursor.fetchall()
+            if add:
+                cursor.execute("SELECT setval('competicao_pred_id_competicao_seq', nextval('competicao_pred_id_competicao_seq'), false);")
+
+        elif type == 1:
+            cursor.execute("SELECT nextval('competicao_simul_id_competicao_seq');")
+            result = cursor.fetchall()
+            if add:
+                cursor.execute("SELECT setval('competicao_simul_id_competicao_seq', nextval('competicao_simul_id_competicao_seq'), false);")
+
+    return result
+
 @csrf_exempt
 def post_competition(request):
     if request.method != "POST":
@@ -109,14 +126,14 @@ def post_competition(request):
     dataset_gabarito = None
     ambiente = None
 
-    if oficial == 1:
+    if int(oficial) == 1:
         patrocinador = request.POST.get('patrocinador')
         premiacao = request.POST.get('premiacao')
 
     print(request.POST)
     print(request.FILES)
 
-    if tipo == 0:
+    if int(tipo) == 0:
         dataset_tt = request.FILES['dataset-tt']
         dataset_submissao = request.FILES['dataset-submissao']
         dataset_gabarito = request.FILES['dataset-gabarito']
@@ -125,8 +142,8 @@ def post_competition(request):
             # É NECESSARIO CRIAR LOGICA PARA PADRONIZAR O NOME DOS DATASETS
             # QUE SÃO RECEBIDOS AO CRIAR A COMPETIÇÃO PARA CONSEGUIR FAZER
             # A BUSCA DOS DATASETS DE DETERMINADA COMPETIÇÃO
-            print("IM HERE")
-            fs = FileSystemStorage(location="./uploads/datasets")
+            nextid = get_nextseq_comp(0, True)
+            fs = FileSystemStorage(location="media/comp_pred")
             fs.save(dataset_tt.name, dataset_tt)
             fs.save(dataset_submissao.name, dataset_submissao)
             fs.save(dataset_gabarito.name, dataset_gabarito)
@@ -136,10 +153,7 @@ def post_competition(request):
             # MESMO PROBLEMA DE PADRONIZACAO DE NOME COM O AMBIENTE
             # DE DETERMINADA COMPETIÇÃO. NECESSARIO CRIAR LOGICA
             # DE NOME PARA FACILITAR BUSCA
-            fs = FileSystemStorage(location="./uploads/ambientes")
+            fs = FileSystemStorage(location="media/comp_simul")
             fs.save(ambiente.name, ambiente)
-
-
-    print(dataset_tt)
 
     return redirect("/comp")

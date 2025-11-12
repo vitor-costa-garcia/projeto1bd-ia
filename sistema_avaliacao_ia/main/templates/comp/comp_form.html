@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -19,7 +19,8 @@
 
         <label>
             Tipo da competição: 
-            <select name="tipo">
+            <select name="tipo" id="tipo-comp-select">
+                <option value="-1">Selecione um tipo</option>
                 <option value="0">Predição</option>
                 <option value="1">Simulação</option>
             </select>
@@ -37,23 +38,26 @@
         </label>
 
         <label>
-            Oficial: 
-            <select name="oficial">
-                <option value="0">Sim</option>
-                <option value="1">Não</option>
+            Oficial:
+            <select name="oficial" id="oficial-select">
+                <option value="-1">Selecione</option>
+                <option value="1">Sim</option>
+                <option value="0">Não</option>
             </select>
         </label>
 
-        <label>
-            *Valor Prêmio: <input type="number" name="premiacao">
-        </label>
+        <div id="oficial-form-input" style="display: none">
+            <label>
+                *Valor Prêmio: <input type="number" name="premiacao">
+            </label>
 
-        <label>
-            *Patrocinador:
-            <select name="patrocinador">
-                <option value="">Selecione o tipo da competição</option>
-            </select>
-        </label>
+            <label>
+                *Patrocinador:
+                <select name="patrocinador">
+                    <option value="">Selecione o tipo da competição</option>
+                </select>
+            </label>
+        </div>
 
         <label>
             Data de início: <input type="date" name="data-inicio">
@@ -70,27 +74,32 @@
             </select>
         </label>
 
-        <label>
-            Dataset treino/teste: 
-            <input type="file" accept=".csv" name="dataset-tt">
-        </label>
+        <div id="pred-form-input" style="display: none">
+            <label>
+                Dataset treino/teste: 
+                <input type="file" accept=".csv" name="dataset-tt">
+            </label>
 
-        <label>
-            Dataset submissão: 
-            <input type="file" accept=".csv" name="dataset-submissao">
-        </label>
+            <label>
+                Dataset submissão: 
+                <input type="file" accept=".csv" name="dataset-submissao">
+            </label>
 
-        <label>
-            Dataset gabarito: 
-            <input type="file" accept=".csv" name="dataset-gabarito">
-        </label>
+            <label>
+                Dataset gabarito: 
+                <input type="file" accept=".csv" name="dataset-gabarito">
+            </label>
+        </div>
 
-        <label>
-            Ambiente: 
-            <input type="file" accept=".py" name="ambiente">
-        </label>
+        <div id="simul-form-input" style="display: none">
+            <label>
+                Ambiente: 
+                <input type="file" accept=".py" name="ambiente">
+            </label>
+        </div>
         
         <button type="submit">Registrar</button>
     </form>
 </body>
+<script src = "{% static 'comp/responsive_form.js' %}"></script>
 </html>

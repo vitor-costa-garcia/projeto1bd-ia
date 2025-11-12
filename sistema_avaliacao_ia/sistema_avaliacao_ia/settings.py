@@ -74,7 +74,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": "provabd",
         "USER": "postgres",
-        'PASSWORD': config('DB_PASSWORD'),
+        'PASSWORD': 'vitorgarcia',#config('DB_PASSWORD'),
         "HOST": "localhost",
         "PORT": "5432",
     }
@@ -108,6 +108,9 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
