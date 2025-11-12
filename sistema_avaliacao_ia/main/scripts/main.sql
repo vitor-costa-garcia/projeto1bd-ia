@@ -38,10 +38,10 @@ CREATE TABLE patrocinador(
 CREATE TABLE competicao_pred(
     id_competicao SERIAL NOT NULL,
     id_org_competicao INT NOT NULL,
-    flg_oficial INT NOT NULL CHECK(flg_oficial BETWEEN 0 AND 1),
     titulo VARCHAR(100) NOT NULL,
     descricao TEXT,
     dificuldade VARCHAR(10) NOT NULL CHECK(dificuldade IN ('INICIANTE', 'INTERMEDIARIO', 'AVANCADO')),
+    flg_oficial INT NOT NULL CHECK(flg_oficial BETWEEN 0 AND 1),
     data_criacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     data_inicio TIMESTAMP NOT NULL,
     data_fim TIMESTAMP NOT NULL,

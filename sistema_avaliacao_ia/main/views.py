@@ -26,6 +26,35 @@ def comp(request):
     return render(request, "comp/comp.html", context)
 
 def comp_form(request):
+    if request.method == 'POST':
+        user_id = request.session.get('user_id')
+        if not user_id:
+            messages.error(request, 'Você precisa estar logado para criar uma competição.')
+            return redirect('main:login') 
+
+        payload = request.POST.copy()
+        
+        payload['id_org_competicao'] = user_id
+        
+        try:
+            api_url = "http://127.0.0.1:8000/api/comp/post-competition/"
+            
+            response = requests.post(api_url, data=payload, files=request.FILES)
+            
+            data = response.json()
+
+            if response.status_code == 201:
+                messages.success(request, 'Competição criada com sucesso!')
+                return redirect('main:comp')
+            else:
+                error_msg = data.get('error', 'Ocorreu um erro desconhecido.')
+                messages.error(request, error_msg)
+        
+        except requests.exceptions.RequestException as e:
+            messages.error(request, f"Erro de conexão com a API: {e}")
+
+        return render(request, "comp/comp_form.html")
+
     return render(request, "comp/comp_form.html")
 
 def ranking(request):
