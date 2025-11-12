@@ -2,7 +2,7 @@ from django.db import connection
 from django.shortcuts import redirect, render
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
-from api.queries.user_queries import fetch_user_auth_data_by_email, get_all_user
+from api.queries.user_queries import check_if_user_is_organizer, fetch_user_auth_data_by_email, get_all_user
 from api.queries.comp_queries import get_all_competitions
 import requests
 
@@ -70,7 +70,18 @@ def reports(request):
     return render(request, "reports/reports.html")
 
 def user(request):
-    return render(request, "user/user.html")
+    user_id = request.session.get('user_id')
+    if not user_id:
+        messages.error(request, 'Você precisa estar logado para ver seu perfil.')
+        return redirect('main:login')
+
+    is_organizer = check_if_user_is_organizer(user_id)
+    
+    context = {
+        'is_organizer': is_organizer
+    }
+    
+    return render(request, "user/user.html", context)
 
 def login_view(request):
     if request.method == 'POST':
@@ -85,7 +96,7 @@ def login_view(request):
             
             messages.success(request, 'Login realizado com sucesso!')
             
-            return redirect('main:comp')
+            return redirect('main:index')
 
         messages.error(request, 'Email ou senha inválidos.')
         return render(request, 'login.html')
@@ -112,7 +123,7 @@ def register_view(request):
             data = response.json()
 
             if response.status_code == 201 and 'user_id' in data:
-                messages.success(request, 'Conta criada com sucesso! Faça o login.')
+                messages.success(request, 'Conta criada com sucesso!')
                 return redirect('main:login')
             else:
                 error_msg = data.get('error', 'Ocorreu um erro desconhecido.')
@@ -132,3 +143,34 @@ def logout_view(request):
     except KeyError:
         pass 
     return redirect('main:index')
+
+def become_organizer(request):
+    if request.method != 'POST':
+        return redirect('main:user-profile')
+
+    user_id = request.session.get('user_id')
+    cpf = request.POST.get('cpf')
+
+    if not user_id:
+        messages.error(request, 'Sessão expirada. Faça login novamente.')
+        return redirect('main:login')
+    
+    payload = {
+        'id_usuario': user_id,
+        'cpf': cpf
+    }
+
+    try:
+        api_url = "http://127.0.0.1:8000/api/user/create-organizer/"
+        response = requests.post(api_url, data=payload)
+        data = response.json()
+
+        if response.status_code == 201:
+            messages.success(request, 'Você agora é um organizador!')
+        else:
+            messages.error(request, data.get('error', 'Um erro ocorreu.'))
+            
+    except requests.exceptions.RequestException as e:
+        messages.error(request, f"Erro de conexão com a API: {e}")
+
+    return redirect('main:user-profile')

@@ -1,15 +1,59 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Predicto - Perfil</title>
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dialog.css' %}">
 </head>
 <body>
-    <h1>Perfil</h1>
-    <p>Medalhas:</p><br>
-    <p>Ouro: 7   Prata: 41   Bronze 47</p>
+
+    <h1>Perfil do Usuário</h1>
+    
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li style="color: {% if message.tags == 'success' %}green{% else %}red{% endif %};">
+                    {{ message }}
+                </li>
+            {% endfor %}
+        </ul>
+        <hr>
+    {% endif %}
+
+    <p>Medalhas:</p>
+    <p>Ouro: 7 Prata: 41 Bronze 47</p>
     <button>Histórico competições</button>
     <button>Editar</button>
-</body>
+
+    <hr>
+    
+    {% if is_organizer %}
+        <p><strong>Status:</strong> Você já é um Organizador.</p>
+    
+    {% else %}
+    
+        <button type="button" id="show-dialog-btn">Tornar-se um Organizador</button>
+
+        <dialog id="organizer-dialog">
+            <h2>Registrar como Organizador</h2>
+            <form method="post" action="{% url 'main:become-organizer' %}" class="dialog-form-container">
+                {% csrf_token %}
+                <label>
+                    CPF:
+                    <input type="text" name="cpf" required placeholder="000.000.000-00" maxlength="14">
+                </label>
+                <div class="dialog-actions">
+                    <button type="button" id="close-dialog-btn" class="btn-secondary">Cancelar</button>
+                    <button type="submit">Registrar</button>
+                </div>
+            </form>
+        </dialog>
+        
+        <script src="{% static 'js/dialog.js' %}"></script>
+    
+    {% endif %}
+    </body>
 </html>

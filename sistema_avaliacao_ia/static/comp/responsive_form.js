@@ -1,3 +1,22 @@
+const today = new Date();
+
+const yyyy = today.getFullYear();
+const mm = String(today.getMonth() + 1).padStart(2, '0');
+const dd = String(today.getDate()).padStart(2, '0');
+const minDate = `${yyyy}-${mm}-${dd}`;
+
+document.addEventListener('DOMContentLoaded', () => {
+    const dataInicioInput = document.querySelector('input[name="data_inicio"]');
+    const dataFimInput = document.querySelector('input[name="data_fim"]');
+    
+    if (dataInicioInput) {
+        dataInicioInput.setAttribute('min', minDate);
+    }
+    if (dataFimInput) {
+        dataFimInput.setAttribute('min', minDate);
+    }
+});
+
 const simulFormDiv = document.getElementById('simul-form-input');
 const predFormDiv = document.getElementById('pred-form-input');
 const oficialFormDiv = document.getElementById('oficial-form-input');

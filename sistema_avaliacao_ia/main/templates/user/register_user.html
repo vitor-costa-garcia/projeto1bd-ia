@@ -1,4 +1,4 @@
-{% load static %} <!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -14,7 +14,7 @@
         {% if messages %}
             <ul class="messages">
                 {% for message in messages %}
-                    <li>{{ message }}</li>
+                    <li class="{{ message.tags }}">{{ message }}</li>
                 {% endfor %}
             </ul>
         {% endif %}
@@ -75,5 +75,6 @@
         </form>
     </div>
 
+    <script src="{% static 'user/register_validation.js' %}"></script>
 </body>
 </html>

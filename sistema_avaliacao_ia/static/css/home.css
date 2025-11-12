@@ -1,0 +1,18 @@
+body { 
+    display: block; 
+    padding: 2rem;
+    background-color: #fff;
+}
+
+.home-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 1rem;
+}
