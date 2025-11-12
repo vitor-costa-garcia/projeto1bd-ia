@@ -3,31 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Predicto - Início</title>
+    <title>Home Page</title>
     
     <link rel="stylesheet" href="{% static 'css/auth.css' %}">
     
-    <style>
-        /* Sobrescreve o body do auth.css */
-        body { 
-            display: block; 
-            padding: 2rem;
-            background-color: #fff;
-        }
-        /* Um container simples para a home */
-        .home-container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        /* Estilo básico para o header */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 1rem;
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/home.css' %}">
 </head>
 <body>
 
@@ -46,7 +26,6 @@
         <a href="{% url 'main:comp' %}"><button>Competições</button></a>
         <a href="{% url 'main:user-profile' %}"><button>Perfil</button></a>
         <a href="{% url 'main:ranking' %}"><button>Ranking</button></a>
-        <a href="#"><button>FAQ</button></a>
     </div>
 
 </body>
