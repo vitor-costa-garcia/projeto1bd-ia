@@ -120,15 +120,13 @@ def post_competition(request):
         tipo_comp = data.get('tipo')
         
         flg_oficial = data.get('oficial', '0')
-        cnpj = data.get('patrocinador') or None
         premiacao = data.get('premiacao') or None
 
         if flg_oficial == '0':
-            cnpj = None
             premiacao = None
         elif flg_oficial == '1':
-            if not cnpj or not premiacao:
-                return JsonResponse({"error": "Competições oficiais devem ter CNPJ e Premiação."}, status=400)
+            if not premiacao:
+                return JsonResponse({"error": "Competições oficiais devem ter uma Premiação."}, status=400)
         
         with connection.cursor() as cursor:
             new_comp_id = None 
@@ -141,16 +139,16 @@ def post_competition(request):
                     INSERT INTO competicao_pred 
                     (id_org_competicao, flg_oficial, titulo, descricao, dificuldade, 
                      data_inicio, data_fim, metrica_desempenho, 
-                     cnpj_patrocinador, premiacao,
+                     premiacao,  -- CNPJ removido
                      dataset_tt, dataset_submissao, dataset_gabarito) 
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id_competicao
                     """,
                     [
                         id_org, flg_oficial, data.get('titulo'), data.get('descricao'), data.get('dificuldade'),
                         data.get('data_inicio'), data.get('data_fim'), metrica,
-                        cnpj, premiacao,
-                        'temp', 'temp', 'temp'
+                        premiacao,
+                        'temp', 'temp', 'temp' 
                     ]
                 )
                 new_comp_id = cursor.fetchone()[0]
@@ -176,15 +174,15 @@ def post_competition(request):
                     INSERT INTO competicao_simul
                     (id_org_competicao, flg_oficial, titulo, descricao, dificuldade, 
                      data_inicio, data_fim, metrica_desempenho, 
-                     cnpj_patrocinador, premiacao, ambiente)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     premiacao, ambiente) -- CNPJ removido
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id_competicao
                     """,
                     [
                         id_org, flg_oficial, data.get('titulo'), data.get('descricao'), data.get('dificuldade'),
                         data.get('data_inicio'), data.get('data_fim'), metrica,
-                        cnpj, premiacao,
-                        'temp'
+                        premiacao,
+                        'temp' 
                     ]
                 )
                 new_comp_id = cursor.fetchone()[0]

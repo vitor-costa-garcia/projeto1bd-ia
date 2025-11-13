@@ -4,130 +4,151 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro de competições</title>
-</head>
+    <link rel="stylesheet" href="{% static 'css/comp_form.css' %}"></head>
 <body>
-    <h1>Registro de competições</h1>
 
-    {% if messages %}
-        <ul class="messages">
-            {% for message in messages %}
-                <li style="color: red;">{{ message }}</li>
-            {% endfor %}
-        </ul>
-        <hr>
-    {% endif %}
-    
-    <form method="post" action="{% url 'main:comp-form' %}" enctype="multipart/form-data">
-        {% csrf_token %}
-        <label>
-            Título: <input type="text" name="titulo">
-        </label>
+    <div class="form-container">
+        <h1>Criar Competição</h1>
 
-        <label>
-            Descrição: <input type="text" name="descricao">
-        </label>
-
-        <label>
-            Tipo da competição: 
-            <select name="tipo" id="tipo-comp-select">
-                <option value="-1">Selecione um tipo</option>
-                <option value="0">Predição</option>
-                <option value="1">Simulação</option>
-            </select>
-        </label>
-
-        <label>Dificuldade: <br>
-            <select name="dificuldade" required>
-                <option value="INICIANTE">Iniciante</option>
-                <option value="INTERMEDIARIO">Intermediário</option>
-                <option value="AVANCADO">Avançado</option>
-            </select>
-        </label>
-
-        <label>
-            Oficial:
-            <select name="oficial" id="oficial-select">
-                <option value="-1">Selecione</option>
-                <option value="1">Sim</option>
-                <option value="0">Não</option>
-            </select>
-        </label>
-
-        <div id="oficial-form-input" style="display: none">
-            <label>
-                *Valor Prêmio: <input type="number" name="premiacao">
-            </label>
-
-            <label>
-                *Patrocinador:
-                <select name="patrocinador">
-                    <option value="">Selecione o tipo da competição</option>
-                </select>
-            </label>
-        </div>
-
-        <label>
-            Data de início: <input type="date" name="data_inicio">
-        </label>
-
-        <label>
-            Data de término: <input type="date" name="data_fim">
-        </label>
-
-        <div id="pred-form-input" style="display: none">
-            <label>
-                Métrica de desempenho (Predição): 
-                <select name="metrica_predicao">
-                    <option value="ACURACIA">Acurácia</option>
-                    <option value="PRECISAO">Precisão</option>
-                    <option value="RECALL">Recall</option>
-                    <option value="F1">F1-Score</option>
-                    <option value="MSE">Mean Squared Error (MSE)</option>
-                    <option value="MAE">Mean Absolute Error (MAE)</option>
-                    <option value="RMSE">Root Mean Squared Error (RMSE)</option>
-                    <option value="R2">R-Squared (R²)</option>
-                </select>
-            </label>
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li class="{{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
         
-            <label>
-                Dataset treino/teste: 
-                <input type="file" accept=".csv" name="dataset-tt" required>
-            </label>
+        <form method="post" action="{% url 'main:comp-form' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <fieldset>
+                <legend>Informações Gerais</legend>
 
-            <label>
-                Dataset submissão: 
-                <input type="file" accept=".csv" name="dataset-submissao" required>
-            </label>
+                <div class="form-group">
+                    <label for="titulo">Título:</label>
+                    <input type="text" name="titulo" id="titulo" required>
+                </div>
 
-            <label>
-                Dataset gabarito: 
-                <input type="file" accept=".csv" name="dataset-gabarito" required>
-            </label>
-        </div>
+                <div class="form-group">
+                    <label for="descricao">Descrição:</label>
+                    <textarea name="descricao" id="descricao"></textarea>
+                </div>
 
-        <div id="simul-form-input" style="display: none">
-            <label>
-                Métrica de desempenho (Simulação): 
-                <select name="metrica_simulacao">
-                    <option value="PONTUACAO_TOTAL">Pontuação Total</option>
-                    <option value="TEMPO_CONCLUSAO">Tempo de Conclusão</option>
-                    <option value="PASSOS_EXECUTADOS">Passos Executados</option>
-                    <option value="RECURSOS_COLETADOS">Recursos Coletados</option>
-                    <option value="OBJETIVOS_ATINGIDOS">Objetivos Atingidos</option>
-                    <option value="SOBREVIVENCIA">Sobrevivência</option>
-                    <option value="CUSTO_TOTAL">Custo Total</option>
-                    <option value="RECOMPENSA_MEDIA">Recompensa Média</option>
-                </select>
-            </label>
+                <div class="form-group">
+                    <label for="dificuldade">Dificuldade:</label>
+                    <select name="dificuldade" id="dificuldade" required>
+                        <option value="INICIANTE">Iniciante</option>
+                        <option value="INTERMEDIARIO">Intermediário</option>
+                        <option value="AVANCADO">Avançado</option>
+                    </select>
+                </div>
 
-            <label>
-                Ambiente: 
-                <input type="file" accept=".py" name="ambiente" required>
-            </label>
-        </div>
-        
-        <button type="submit">Registrar</button>
-    </form>
+                <div class="form-group">
+                    <label for="data_inicio">Data de início:</label>
+                    <input type="date" name="data_inicio" id="data_inicio" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="data_fim">Data de término:</label>
+                    <input type="date" name="data_fim" id="data_fim" required>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Tipo e Oficialidade</legend>
+                <div class="form-group">
+                    <label for="tipo-comp-select">Tipo da competição:</label>
+                    <select name="tipo" id="tipo-comp-select" required>
+                        <option value="">Selecione um tipo</option>
+                        <option value="0">Predição</option>
+                        <option value="1">Simulação</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="oficial-select">Oficial:</label>
+                    <select name="oficial" id="oficial-select" required>
+                        <option value="">Selecione</option>
+                        <option value="1">Sim</option>
+                        <option value="0">Não</option>
+                    </select>
+                </div>
+                
+                <div id="oficial-form-input" style="display: none">
+                    <div class="form-group">
+                        <label for="premiacao">Premiação Total (R$):</label>
+                            <input type="number" name="premiacao" min="0.01" placeholder="0.00" step="0.011">
+                    </div>
+                </div>
+            </fieldset>
+
+            <div id="pred-form-input" style="display: none">
+                <fieldset>
+                    <legend>Campos de Predição</legend>
+                    <div class="form-group">
+                        <label for="metrica_predicao">Métrica de desempenho:</label>
+                        <select name="metrica_predicao" id="metrica_predicao">
+                            <option value="ACURACIA">Acurácia</option>
+                            <option value="PRECISAO">Precisão</option>
+                            <option value="RECALL">Recall</option>
+                            <option value="F1">F1-Score</option>
+                            <option value="MSE">Mean Squared Error (MSE)</option>
+                            <option value="MAE">Mean Absolute Error (MAE)</option>
+                            <option value="RMSE">Root Mean Squared Error (RMSE)</option>
+                            <option value="R2">R-Squared (R²)</option>
+                        </select>
+                    </div>
+                
+                    <div class="form-group">
+                        <label for="dataset-tt">Dataset treino/teste:</label>
+                        <input type="file" accept=".csv" name="dataset-tt" id="dataset-tt" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dataset-submissao">Dataset submissão:</label>
+                        <input type="file" accept=".csv" name="dataset-submissao" id="dataset-submissao" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dataset-gabarito">Dataset gabarito:</label>
+                        <input type="file" accept=".csv" name="dataset-gabarito" id="dataset-gabarito" required>
+                    </div>
+                </fieldset>
+            </div>
+
+            <div id="simul-form-input" style="display: none">
+                <fieldset>
+                    <legend>Campos de Simulação</legend>
+                    <div class="form-group">
+                        <label for="metrica_simulacao">Métrica de desempenho:</label>
+                        <select name="metrica_simulacao" id="metrica_simulacao">
+                            <option value="PONTUACAO_TOTAL">Pontuação Total</option>
+                            <option value="TEMPO_CONCLUSAO">Tempo de Conclusão</option>
+                            <option value="PASSOS_EXECUTADOS">Passos Executados</option>
+                            <option value="RECURSOS_COLETADOS">Recursos Coletados</option>
+                            <option value="OBJETIVOS_ATINGIDOS">Objetivos Atingidos</option>
+                            <option value="SOBREVIVENCIA">Sobrevivência</option>
+                            <option value="CUSTO_TOTAL">Custo Total</option>
+                            <option value="RECOMPENSA_MEDIA">Recompensa Média</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ambiente">Ambiente:</label>
+                        <input type="file" accept=".py" name="ambiente" id="ambiente" required>
+                    </div>
+                </fieldset>
+            </div>
+            
+            <div class="form-actions">
+                <a href="{% url 'main:comp' %}" style="text-decoration: none;">
+                    <button type="button" class="btn-secondary">Cancelar</button>
+                </a>
+                <button type="submit">Registrar</button>
+            </div>
+        </form>
+    </div>
+
+    <script src = "{% static 'comp/responsive_form.js' %}"></script>
 </body>
-<script src = "{% static 'comp/responsive_form.js' %}"></script>
 </html>
