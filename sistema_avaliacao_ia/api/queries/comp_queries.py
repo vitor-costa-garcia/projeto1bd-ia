@@ -222,10 +222,46 @@ def get_competition(request, compid):
     with connection.cursor() as cursor:
         match int(compid)%2:
             case 1:
-                cursor.execute("SELECT * FROM competicao_pred WHERE id_competicao = %s", [compid])
+                cursor.execute(
+                    """
+                    SELECT
+                        A.id_competicao,
+                        B.nome,
+                        A.titulo,
+                        A.descricao,
+                        A.dificuldade,
+                        A.flg_oficial,
+                        A.data_criacao,
+                        A.data_inicio,
+                        A.data_fim,
+                        A.metrica_desempenho,
+                        A.premiacao
+                    FROM
+                        competicao_pred A, usuario B
+                    WHERE
+                        id_competicao = %s AND
+                        B.id = A.id_org_competicao""", [compid])
 
             case 0:
-                cursor.execute("SELECT * FROM competicao_simul WHERE id_competicao = %s", [compid])
+                cursor.execute(
+                    """
+                    SELECT
+                        A.id_competicao,
+                        B.nome,
+                        A.titulo,
+                        A.descricao,
+                        A.dificuldade,
+                        A.flg_oficial,
+                        A.data_criacao,
+                        A.data_inicio,
+                        A.data_fim,
+                        A.metrica_desempenho,
+                        A.premiacao
+                    FROM
+                        competicao_simul A, usuario B
+                    WHERE
+                        A.id_competicao = %s AND
+                        B.id = A.id_org_competicao""", [compid])
 
         result = cursor.fetchall()
 
