@@ -32,7 +32,7 @@ CREATE TABLE competicao_pred(
     id_org_competicao INT NOT NULL,
     titulo VARCHAR(100) NOT NULL,
     descricao TEXT,
-    dificuldade VARCHAR(10) NOT NULL CHECK(dificuldade IN ('INICIANTE', 'INTERMEDIARIO', 'AVANCADO')),
+    dificuldade VARCHAR(15) NOT NULL CHECK(dificuldade IN ('INICIANTE', 'INTERMEDIARIO', 'AVANCADO')),
     flg_oficial INT NOT NULL CHECK(flg_oficial BETWEEN 0 AND 1),
     data_criacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     data_inicio TIMESTAMP NOT NULL,
@@ -51,7 +51,7 @@ CREATE TABLE competicao_pred(
     dataset_submissao VARCHAR(200) NOT NULL,
     dataset_gabarito VARCHAR(200) NOT NULL,
     premiacao DECIMAL(10,2) CHECK(flg_oficial = 1 OR premiacao IS NULL),
-    CONSTRAINT "CHECK_DATAS_COMPETICAO_PRED" CHECK (data_inicio >= data_criacao AND data_fim >= data_inicio),
+    CONSTRAINT "CHECK_DATAS_COMPETICAO_PRED" CHECK (data_inicio::date >= data_criacao::date AND data_fim >= data_inicio),
     CONSTRAINT "PK_COMPETICAO_PRED" PRIMARY KEY (id_competicao, id_org_competicao)
 );
 
@@ -115,7 +115,7 @@ CREATE TABLE competicao_simul(
     flg_oficial INT NOT NULL CHECK(flg_oficial BETWEEN 0 AND 1),
     titulo VARCHAR(100) NOT NULL,
     descricao TEXT,
-    dificuldade VARCHAR(10) NOT NULL CHECK(dificuldade IN ('INICIANTE', 'INTERMEDIARIO', 'AVANCADO')),
+    dificuldade VARCHAR(15) NOT NULL CHECK(dificuldade IN ('INICIANTE', 'INTERMEDIARIO', 'AVANCADO')),
     data_criacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     data_inicio TIMESTAMP NOT NULL,
     data_fim TIMESTAMP NOT NULL,
@@ -131,7 +131,7 @@ CREATE TABLE competicao_simul(
     )),
     ambiente VARCHAR(200) NOT NULL,
     premiacao DECIMAL(10,2) CHECK(flg_oficial = 1 OR premiacao IS NULL),
-    CONSTRAINT "CHECK_DATAS_COMPETICAO_SIMUL" CHECK (data_inicio >= data_criacao AND data_fim >= data_inicio),
+    CONSTRAINT "CHECK_DATAS_COMPETICAO_SIMUL" CHECK (data_inicio::date >= data_criacao::date AND data_fim >= data_inicio),
     CONSTRAINT "PK_COMPETICAO_SIMUL_OFC" PRIMARY KEY (id_competicao, id_org_competicao)
 );
 
