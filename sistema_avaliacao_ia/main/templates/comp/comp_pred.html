@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predicto - Competição</title>
+</head>
+<body>
+    <h1>Competição {{ compid }}</h1>
+    <br>
+    <p>{{ titulo }}</p>
+    <p>{{ descricao }}</p>
+    <p>Dificuldade: {{ dificuldade }}</p>
+    <p>Competidores ativos: {{ n_comp }}</p>
+    <p>Equipes registradas: {{ n_equipes }}</p>
+    <p>Data de início: {{ data_inicio }}</p>
+    <p>Data término: {{ data_fim }}</p>
+    <p>Métrica desempenho usada: {{ metrica_desempenho }}</p>
+    {% if flg_oficial == 1 %}<p>Premio: {{ premiacao }}</p>{% endif %}
+</body>
+</html>

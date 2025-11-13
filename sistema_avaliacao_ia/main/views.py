@@ -57,6 +57,60 @@ def comp_form(request):
 
     return render(request, "comp/comp_form.html")
 
+def comp_view(request, compid):
+    api_url = f"http://127.0.0.1:8000/api/comp/get-competition/{compid}"
+    
+    response = requests.get(api_url)
+
+    compdata = response.json()
+    data = compdata['competition'][0]
+    n_eq = compdata['n_teams'][0]
+    n_ca = compdata['n_comp'][0]
+
+    print(data)
+
+    if compid%2:
+        context = {
+            "compid": data[0],
+            "organizador": data[1],
+            "titulo": data[2],
+            "descricao": data[3],
+            "dificuldade": data[4],
+            "flg_oficial": data[5],
+            "data_criacao": data[6],
+            "data_inicio": data[7],
+            "data_fim": data[8],
+            "metrica_desempenho": data[9],
+            "dataset_tt": data[10],
+            "dataset_submissao": data[11],
+            "premiacao": data[13],
+            "n_equipes": n_eq[0],
+            "n_comp": n_ca[0]
+        }
+
+        return render(request, "comp/comp_pred.html", context = context)
+
+    else:
+        context = {
+            "compid": data[0],
+            "organizador": data[1],
+            "titulo": data[2],
+            "descricao": data[3],
+            "dificuldade": data[4],
+            "flg_oficial": data[5],
+            "data_criacao": data[6],
+            "data_inicio": data[7],
+            "data_fim": data[8],
+            "metrica_desempenho": data[9],
+            "ambiente": data[10],
+            "premiacao": data[11],
+            "n_equipes": n_eq[0],
+            "n_comp": n_ca[0]
+        }
+
+        return render(request, "comp/comp_simul.html", context = context)
+
+
 def ranking(request):
     resp = requests.get("http://127.0.0.1:8000/api/user/get-all-users/")
     rankinglist = resp.json()['users']

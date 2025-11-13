@@ -4,4 +4,5 @@ from api.queries.comp_queries import *
 urlpatterns = [
     path('get-all-competitions/', get_all_competitions),
     path('post-competition/', post_competition),
+    path('get-competition/<int:compid>/', get_competition),
 ]

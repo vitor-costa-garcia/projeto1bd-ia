@@ -92,7 +92,7 @@ def get_simulation_competitions(request):
         result = cursor.fetchall()
         return JsonResponse({"competitions":result})
 
-def get_nextseq_comp(request, type, add):
+def get_nextseq_comp(type, add):
     with connection.cursor() as cursor:
         if type == 0:
             cursor.execute("SELECT nextval('competicao_pred_id_competicao_seq');")
@@ -106,7 +106,7 @@ def get_nextseq_comp(request, type, add):
             if add:
                 cursor.execute("SELECT setval('competicao_simul_id_competicao_seq', nextval('competicao_simul_id_competicao_seq'), false);")
 
-    return result
+    return result[0][0]
 
 @csrf_exempt
 def post_competition(request):
@@ -133,19 +133,21 @@ def post_competition(request):
             
             if tipo_comp == '0':
                 metrica = data.get('metrica_predicao')
+
+                nextid = get_nextseq_comp(type=0, add=False)
                 
                 cursor.execute(
                     """
                     INSERT INTO competicao_pred 
-                    (id_org_competicao, flg_oficial, titulo, descricao, dificuldade, 
+                    (id_competicao, id_org_competicao, flg_oficial, titulo, descricao, dificuldade, 
                      data_inicio, data_fim, metrica_desempenho, 
                      premiacao,  -- CNPJ removido
                      dataset_tt, dataset_submissao, dataset_gabarito) 
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s01, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id_competicao
                     """,
                     [
-                        id_org, flg_oficial, data.get('titulo'), data.get('descricao'), data.get('dificuldade'),
+                        nextid, id_org, flg_oficial, data.get('titulo'), data.get('descricao'), data.get('dificuldade'),
                         data.get('data_inicio'), data.get('data_fim'), metrica,
                         premiacao,
                         'temp', 'temp', 'temp' 
@@ -168,18 +170,20 @@ def post_competition(request):
 
             elif tipo_comp == '1':
                 metrica = data.get('metrica_simulacao')
+
+                nextid = get_nextseq_comp(type=1, add=False)
                 
                 cursor.execute(
                     """
                     INSERT INTO competicao_simul
-                    (id_org_competicao, flg_oficial, titulo, descricao, dificuldade, 
+                    (id_competicao, id_org_competicao, flg_oficial, titulo, descricao, dificuldade, 
                      data_inicio, data_fim, metrica_desempenho, 
                      premiacao, ambiente) -- CNPJ removido
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s02, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id_competicao
                     """,
                     [
-                        id_org, flg_oficial, data.get('titulo'), data.get('descricao'), data.get('dificuldade'),
+                        nextid, id_org, flg_oficial, data.get('titulo'), data.get('descricao'), data.get('dificuldade'),
                         data.get('data_inicio'), data.get('data_fim'), metrica,
                         premiacao,
                         'temp' 
@@ -198,6 +202,8 @@ def post_competition(request):
                     [f_ambiente, new_comp_id, id_org]
                 )
 
+                get_nextseq_comp(type=1, add=True)
+
             else:
                 return JsonResponse({"error": "Tipo de competição inválido. Selecione 'Predição' ou 'Simulação'."}, status=400)
 
@@ -209,6 +215,56 @@ def post_competition(request):
         return JsonResponse({"error": f"Arquivo ou campo obrigatório faltando: {e}"}, status=400)
     except Exception as e:
         return JsonResponse({"error": f"Um erro inesperado ocorreu: {e}"}, status=500)
+
+def get_competition(request, compid):
+    
+    with connection.cursor() as cursor:
+        match int(compid)%2:
+            case 1:
+                cursor.execute("SELECT * FROM competicao_pred WHERE id_competicao = %s", [compid])
+
+            case 0:
+                cursor.execute("SELECT * FROM competicao_simul WHERE id_competicao = %s", [compid])
+
+        result = cursor.fetchall()
+
+        # Equipes
+        cursor.execute(
+            """ 
+            SELECT
+                COUNT(id) as n_equipes
+            FROM (
+                SELECT * FROM equipe_pred
+                UNION ALL
+                SELECT * FROM equipe_simul
+            ) AS equipes
+            WHERE id_competicao = %s
+            ;
+            """, [compid]
+        )
+
+        result_eq = cursor.fetchall() or [0]
+
+        # Competidores ativos na competição
+        cursor.execute(
+            """
+            SELECT
+                COUNT(id_competidor) AS qtd_competidores_ativos
+            FROM (
+                SELECT * FROM composicao_equipe_pred
+                UNION ALL
+                SELECT * FROM composicao_equipe_simul
+            )
+            WHERE
+                data_hora_fim IS NULL AND
+                id_competicao  = %s
+            ;
+            """, [compid]
+        )
+
+        result_ca = cursor.fetchall() or [0]
+
+        return JsonResponse({"competition": result, "n_teams": result_eq, "n_comp":result_ca})
 
 def salvar_arquivo(file, id_competicao, tipo_pasta):
     fs = FileSystemStorage(location=f"./uploads/{tipo_pasta}")
