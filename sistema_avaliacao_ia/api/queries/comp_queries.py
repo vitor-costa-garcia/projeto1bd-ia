@@ -1,5 +1,5 @@
 from django.db import IntegrityError, connection
-from django.http import JsonResponse
+from django.http import JsonResponse, FileResponse
 from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import FileSystemStorage
@@ -43,6 +43,7 @@ def get_all_competitions(request):
                     )
 
         result = cursor.fetchall()
+        print(result)
         return JsonResponse({"competitions":result})
 
 def get_predict_competitions(request):
@@ -271,3 +272,31 @@ def salvar_arquivo(file, id_competicao, tipo_pasta):
     filename = f"{id_competicao}_{file.name}"
     fs.save(filename, file)
     return os.path.join(tipo_pasta, filename)
+
+def download_file(filepath):
+    file_path = os.path.join(f"./uploads/{filepath}")
+    if os.path.exists(file_path):
+        response = FileResponse(open(file_path, "rb"), as_attachment=True)
+        return response
+    else:
+        raise JsonResponse({"error": "error downloading the file"}, status=500)
+    
+def download_competition_file(request, compid, type_file):
+    with connection.cursor() as cursor:
+        match compid%2:
+            case 1:
+                match type_file:
+                    case 0:
+                        cursor.execute("SELECT dataset_tt FROM competicao_pred WHERE id_competicao = %s", [compid])
+                        result = cursor.fetchall()[0][0]
+                        return download_file(result)
+
+                    case 1:
+                        cursor.execute("SELECT dataset_submissao FROM competicao_pred WHERE id_competicao = %s", [compid])
+                        result = cursor.fetchall()[0][0]
+                        return download_file(result)
+
+            case 0:
+                cursor.execute("SELECT ambiente FROM competicao_simul WHERE id_competicao = %s", [compid])
+                result = cursor.fetchall()[0][0]
+                return download_file(result)

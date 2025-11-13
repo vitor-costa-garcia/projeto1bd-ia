@@ -41,7 +41,7 @@
                 <th>Data fim</th>
                 <th>Dificuldade</th>
                 <th>Oficial</th>
-                <th></th>
+                <th>Ações</th>
             </tr>
         </thead>
         <tbody>
@@ -55,6 +55,7 @@
                 <td>{{ comp.5 }}</td>
                 <td>{{ comp.7 }}</td>
                 <td>{% if comp.6 == 0 %}Não{% else %}Sim{% endif %}</td>
+                <td><a href="{{ comp.0 }}"><button>Ver</button></a></td>
             </tr>
             {% endfor %}
         </tbody>
