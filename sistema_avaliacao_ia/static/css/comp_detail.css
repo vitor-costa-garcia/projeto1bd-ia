@@ -4,11 +4,16 @@
     gap: 2rem;
 }
 
+.comp-main-content {
+    text-align: left;
+}
+
 .comp-main-content h1 {
     font-size: 2.5rem;
     font-weight: 700;
     margin-top: 0;
     margin-bottom: 0.5rem;
+    text-align: left;
 }
 
 .comp-main-content .subtitle {
@@ -17,6 +22,7 @@
     margin-bottom: 2rem;
     border-bottom: 1px solid #dee2e6;
     padding-bottom: 2rem;
+    text-align: left;
 }
 
 .comp-main-content h2 {
@@ -25,11 +31,13 @@
     border-bottom: 1px solid #eee;
     padding-bottom: 0.5rem;
     margin-top: 2rem;
+    text-align: left;
 }
 
 .comp-main-content p {
     line-height: 1.6;
     color: #333;
+    text-align: left;
 }
 
 .comp-sidebar .sidebar-pod {
@@ -46,6 +54,7 @@
     font-size: 1.1rem;
     font-weight: 600;
     color: #212529;
+    text-align: left;
 }
 
 .sidebar-pod ul {
@@ -124,11 +133,24 @@
 .remove-member-btn {
     border: none;
     background: none;
-    color: #dc3545;
+    color: #000000;
     cursor: pointer;
     font-size: 1.2rem;
     font-weight: bold;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    transition: background-color 0.2s ease;
 }
+
+.remove-member-btn:hover {
+    background-color: #f8f9fa;
+    color: #000000;
+    box-shadow: none;
+}
+
 .team-search-container {
     position: relative;
     margin-top: 1rem;
