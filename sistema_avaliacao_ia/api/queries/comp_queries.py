@@ -5,6 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import FileSystemStorage
 from datetime import date
 import os
+from django.contrib.auth.hashers import make_password
 
 def get_all_competitions(request):
     with connection.cursor() as cursor:
@@ -13,34 +14,48 @@ def get_all_competitions(request):
                     SELECT 
                         A.id_competicao,
                         A.titulo,
+                        A.descricao,
                         'Predição' as tipo,
                         B.nome as nome_organizador,
                         A.data_inicio,
                         A.data_fim,
                         A.flg_oficial,
                         A.dificuldade,
-                        A.premiacao 
+                        A.premiacao,
+                        COALESCE(EQ.team_count, 0) AS total_equipes
                     FROM
-                        competicao_pred A, usuario B
-                    WHERE
-                        A.id_org_competicao = B.id
+                        competicao_pred A
+                    JOIN 
+                        usuario B ON A.id_org_competicao = B.id
+                    LEFT JOIN 
+                        (SELECT id_competicao, id_org_competicao, COUNT(id) as team_count
+                         FROM equipe_pred
+                         GROUP BY id_competicao, id_org_competicao) AS EQ
+                    ON A.id_competicao = EQ.id_competicao AND A.id_org_competicao = EQ.id_org_competicao
 
                     UNION
 
                     SELECT 
                         A.id_competicao,
                         A.titulo,
+                        A.descricao,
                         'Simulação' as tipo,
                         B.nome as nome_organizador,
                         A.data_inicio,
                         A.data_fim,
                         A.flg_oficial,
                         A.dificuldade,
-                        A.premiacao 
+                        A.premiacao,
+                        COALESCE(EQ.team_count, 0) AS total_equipes
                     FROM
-                        competicao_simul A, usuario B
-                    WHERE
-                        A.id_org_competicao = B.id
+                        competicao_simul A
+                    JOIN 
+                        usuario B ON A.id_org_competicao = B.id
+                    LEFT JOIN 
+                        (SELECT id_competicao, id_org_competicao, COUNT(id) as team_count
+                         FROM equipe_simul
+                         GROUP BY id_competicao, id_org_competicao) AS EQ
+                    ON A.id_competicao = EQ.id_competicao AND A.id_org_competicao = EQ.id_org_competicao
                     """
                     )
 
