@@ -6,4 +6,5 @@ urlpatterns = [
     path('post-competition/', post_competition),
     path('get-competition/<int:compid>/', get_competition),
     path('download-competition-file/<int:compid>/<int:type_file>/', download_competition_file),
+    path('create-team/', create_team),
 ]

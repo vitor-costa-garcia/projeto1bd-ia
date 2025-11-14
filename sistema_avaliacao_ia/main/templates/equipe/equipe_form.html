@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Inscrever Equipe{% endblock %}
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'css/form_style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/equipe_form.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h1>Inscrever Equipe na Competição {{ compid }}</h1>
+
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li class="{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    
+    <form method="post" action="{% url 'main:create-team' compid %}" id="team-form" data-current-user-id="{{ current_user_id }}">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="nome_equipe">Nome da Equipe:</label>
+            <input type="text" name="nome_equipe" id="nome_equipe" required maxlength="20" 
+                   pattern=".*\S+.*" title="O nome não pode conter apenas espaços.">
+        </div>
+        
+        <div class="form-group search-container">
+            <label for="user-search-input">Adicionar Membros:</label>
+            <input type="text" id="user-search-input" placeholder="Pesquise pelo nome...">
+            <div id="search-results" style="display: none;"></div>
+        </div>
+
+        <div class="form-group">
+            <label>Membros Selecionados:</label>
+            <div id="selected-members">
+            </div>
+        </div>
+
+        <div class="form-actions">
+             <a href="{% url 'main:comp-viewer' compid %}" style="text-decoration: none;">
+                <button type="button" class="btn-secondary">Cancelar</button>
+            </a>
+            <button type="submit">Criar Equipe</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{% static 'equipe/equipe_form.js' %}"></script>
+{% endblock %}

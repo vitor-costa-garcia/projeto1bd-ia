@@ -1,4 +1,4 @@
-from django.db import IntegrityError, connection
+from django.db import IntegrityError, connection, transaction
 from django.http import JsonResponse, FileResponse
 from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
@@ -132,6 +132,13 @@ def post_competition(request):
         elif flg_oficial == '1':
             if not premiacao or float(premiacao) <= 0:
                 return JsonResponse({"error": "Competições oficiais devem ter uma premiação maior que R$ 0,00."}, status=400)        
+        
+        data_inicio = data.get('data_inicio') or None
+        data_fim = data.get('data_fim') or None
+        
+        if not data_inicio or not data_fim:
+            return JsonResponse({"error": "Data de início e fim são obrigatórias."}, status=400)
+
         with connection.cursor() as cursor:
             new_comp_id = None 
             
@@ -145,14 +152,14 @@ def post_competition(request):
                     INSERT INTO competicao_pred 
                     (id_competicao, id_org_competicao, flg_oficial, titulo, descricao, dificuldade, 
                      data_inicio, data_fim, metrica_desempenho, 
-                     premiacao,  -- CNPJ removido
+                     premiacao,
                      dataset_tt, dataset_submissao, dataset_gabarito) 
-                    VALUES (%s01, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id_competicao
                     """,
                     [
                         nextid, id_org, flg_oficial, data.get('titulo'), data.get('descricao'), data.get('dificuldade'),
-                        data.get('data_inicio'), data.get('data_fim'), metrica,
+                        data_inicio, data_fim, metrica,
                         premiacao,
                         'temp', 'temp', 'temp' 
                     ]
@@ -172,6 +179,9 @@ def post_competition(request):
                     [f_tt, f_sub, f_gab, new_comp_id, id_org]
                 )
 
+                get_nextseq_comp(type=0, add=True)
+
+
             elif tipo_comp == '1':
                 metrica = data.get('metrica_simulacao')
 
@@ -182,13 +192,13 @@ def post_competition(request):
                     INSERT INTO competicao_simul
                     (id_competicao, id_org_competicao, flg_oficial, titulo, descricao, dificuldade, 
                      data_inicio, data_fim, metrica_desempenho, 
-                     premiacao, ambiente) -- CNPJ removido
-                    VALUES (%s02, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     premiacao, ambiente)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id_competicao
                     """,
                     [
                         nextid, id_org, flg_oficial, data.get('titulo'), data.get('descricao'), data.get('dificuldade'),
-                        data.get('data_inicio'), data.get('data_fim'), metrica,
+                        data_inicio, data_fim, metrica,
                         premiacao,
                         'temp' 
                     ]
@@ -242,7 +252,7 @@ def get_competition(request, compid):
                     FROM
                         competicao_pred A, usuario B
                     WHERE
-                        id_competicao = %s AND
+                        A.id_competicao = %s AND
                         B.id = A.id_org_competicao""", [compid])
 
             case 0:
@@ -268,7 +278,6 @@ def get_competition(request, compid):
 
         result = cursor.fetchall()
 
-        # Equipes
         cursor.execute(
             """ 
             SELECT
@@ -285,7 +294,6 @@ def get_competition(request, compid):
 
         result_eq = cursor.fetchall() or [0]
 
-        # Competidores ativos na competição
         cursor.execute(
             """
             SELECT
@@ -318,7 +326,7 @@ def download_file(filepath):
         response = FileResponse(open(file_path, "rb"), as_attachment=True)
         return response
     else:
-        raise JsonResponse({"error": "error downloading the file"}, status=500)
+        return JsonResponse({"error": "error downloading the file"}, status=500)
     
 def download_competition_file(request, compid, type_file):
     with connection.cursor() as cursor:
@@ -339,3 +347,86 @@ def download_competition_file(request, compid, type_file):
                 cursor.execute("SELECT ambiente FROM competicao_simul WHERE id_competicao = %s", [compid])
                 result = cursor.fetchall()[0][0]
                 return download_file(result)
+
+@transaction.atomic
+@csrf_exempt
+def create_team(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only endpoint"}, status=405)
+    
+    try:
+        data = request.POST
+        compid = int(data.get('compid'))
+        id_competidor_criador = data.get('id_competidor')
+        nome_equipe = data.get('nome_equipe')
+        membros_adicionais_ids = data.getlist('members')
+
+        if not all([compid, id_competidor_criador, nome_equipe]):
+            return JsonResponse({"error": "compid, id_competidor, e nome_equipe são obrigatórios."}, status=400)
+        
+        if not nome_equipe.strip():
+            return JsonResponse({"error": "O nome da equipe não pode ser vazio ou conter apenas espaços."}, status=400)
+        
+        with connection.cursor() as cursor:
+            id_org = None
+            is_pred = compid % 2
+            
+            if is_pred:
+                cursor.execute("SELECT id_org_competicao FROM competicao_pred WHERE id_competicao = %s", [compid])
+            else:
+                cursor.execute("SELECT id_org_competicao FROM competicao_simul WHERE id_competicao = %s", [compid])
+            
+            result = cursor.fetchone()
+            if not result:
+                return JsonResponse({"error": "Competição não encontrada."}, status=404)
+            id_org = result[0]
+            
+            new_team_id = None
+            
+            todos_membros = set([id_competidor_criador] + membros_adicionais_ids)
+
+            if is_pred:
+                cursor.execute(
+                    """
+                    INSERT INTO equipe_pred (id_competicao, id_org_competicao, nome)
+                    VALUES (%s, %s, %s)
+                    RETURNING id
+                    """,
+                    [compid, id_org, nome_equipe]
+                )
+                new_team_id = cursor.fetchone()[0]
+                
+                for member_id in todos_membros:
+                    cursor.execute(
+                        """
+                        INSERT INTO composicao_equipe_pred (id_equipe, id_competicao, id_org_competicao, id_competidor, data_hora_inicio)
+                        VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+                        """,
+                        [new_team_id, compid, id_org, member_id]
+                    )
+            else:
+                cursor.execute(
+                    """
+                    INSERT INTO equipe_simul (id_competicao, id_org_competicao, nome)
+                    VALUES (%s, %s, %s)
+                    RETURNING id
+                    """,
+                    [compid, id_org, nome_equipe]
+                )
+                new_team_id = cursor.fetchone()[0]
+                
+                for member_id in todos_membros:
+                    cursor.execute(
+                        """
+                        INSERT INTO composicao_equipe_simul (id_equipe, id_competicao, id_org_competicao, id_competidor, data_hora_inicio)
+                        VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+                        """,
+                        [new_team_id, compid, id_org, member_id]
+                    )
+        
+        return JsonResponse({"message": "Equipe criada com sucesso!", "id_equipe": new_team_id}, status=201)
+
+    except IntegrityError as e:
+        return JsonResponse({"error": f"Erro de Banco de Dados: {e}"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": f"Um erro inesperado ocorreu: {e}"}, status=500)
