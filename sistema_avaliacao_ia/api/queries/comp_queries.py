@@ -18,7 +18,8 @@ def get_all_competitions(request):
                         A.data_inicio,
                         A.data_fim,
                         A.flg_oficial,
-                        A.dificuldade
+                        A.dificuldade,
+                        A.premiacao 
                     FROM
                         competicao_pred A, usuario B
                     WHERE
@@ -34,7 +35,8 @@ def get_all_competitions(request):
                         A.data_inicio,
                         A.data_fim,
                         A.flg_oficial,
-                        A.dificuldade
+                        A.dificuldade,
+                        A.premiacao 
                     FROM
                         competicao_simul A, usuario B
                     WHERE
@@ -43,7 +45,6 @@ def get_all_competitions(request):
                     )
 
         result = cursor.fetchall()
-        print(result)
         return JsonResponse({"competitions":result})
 
 def get_predict_competitions(request):
@@ -123,12 +124,14 @@ def post_competition(request):
         flg_oficial = data.get('oficial', '0')
         premiacao = data.get('premiacao') or None
 
+        if premiacao:
+            premiacao = premiacao.replace(',', '.')
+
         if flg_oficial == '0':
             premiacao = None
         elif flg_oficial == '1':
-            if not premiacao:
-                return JsonResponse({"error": "Competições oficiais devem ter uma Premiação."}, status=400)
-        
+            if not premiacao or float(premiacao) <= 0:
+                return JsonResponse({"error": "Competições oficiais devem ter uma premiação maior que R$ 0,00."}, status=400)        
         with connection.cursor() as cursor:
             new_comp_id = None 
             

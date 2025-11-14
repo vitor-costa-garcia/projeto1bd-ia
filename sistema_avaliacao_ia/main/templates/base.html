@@ -1,0 +1,40 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Predicto{% endblock %}</title>
+    
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+    <link rel="stylesheet" href="{% static 'css/layout.css' %}">
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+    <nav class="sidebar">
+        <a href="{% url 'main:comp' %}" class="sidebar-header">Predicto</a>
+        
+        <ul class="sidebar-nav">
+            <li><a href="{% url 'main:comp' %}">Competições</a></li>
+            <li><a href="{% url 'main:user-profile' %}">Perfil</a></li>
+            <li><a href="{% url 'main:ranking' %}">Ranking</a></li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <p>{{ user_name }}</p>
+            <a href="{% url 'main:logout' %}">
+                <button type="button" class="btn-secondary" style="width: 100%;">Logout</button>
+            </a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        {% block content %}
+        {% endblock %}
+    </main>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
