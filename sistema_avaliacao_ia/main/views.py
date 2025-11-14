@@ -3,7 +3,7 @@ from django.shortcuts import redirect, render
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
 from api.queries.user_queries import check_if_user_is_organizer, fetch_user_auth_data_by_email, get_all_user, check_user_team_membership
-from api.queries.comp_queries import get_all_competitions
+from api.queries.comp_queries import get_all_competitions, get_team_members
 from datetime import datetime
 from django.utils import timezone
 import requests
@@ -84,10 +84,13 @@ def comp_form(request):
 
 def comp_view(request, compid):
     user_id = request.session.get('user_id')
-    user_has_team = False
+    equipe_id = None
+    team_members = []
     
     if user_id:
-        user_has_team = check_user_team_membership(user_id, compid)
+        equipe_id = check_user_team_membership(user_id, compid)
+        if equipe_id:
+            team_members = get_team_members(compid, equipe_id)
 
     api_url = f"http://127.0.0.1:8000/api/comp/get-competition/{compid}"
     
@@ -122,7 +125,10 @@ def comp_view(request, compid):
             "n_equipes": n_eq[0],
             "n_comp": n_ca[0],
             "user_name": request.session.get('user_name'),
-            "user_has_team": user_has_team
+            "user_has_team": equipe_id is not None,
+            "equipe_id": equipe_id,
+            "team_members": team_members,
+            "current_user_id": user_id
         }
 
     if compid%2:
