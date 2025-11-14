@@ -445,3 +445,114 @@ def create_team(request):
         return JsonResponse({"error": f"Erro de Banco de Dados: {e}"}, status=400)
     except Exception as e:
         return JsonResponse({"error": f"Um erro inesperado ocorreu: {e}"}, status=500)
+
+def get_team_members(compid, equipe_id):
+    with connection.cursor() as cursor:
+        if compid % 2:
+            cursor.execute(
+                """
+                SELECT u.id, u.nome
+                FROM composicao_equipe_pred c
+                JOIN usuario u ON c.id_competidor = u.id
+                WHERE c.id_equipe = %s AND c.id_competicao = %s AND c.data_hora_fim IS NULL
+                """,
+                [equipe_id, compid]
+            )
+        else:
+            cursor.execute(
+                """
+                SELECT u.id, u.nome
+                FROM composicao_equipe_simul c
+                JOIN usuario u ON c.id_competidor = u.id
+                WHERE c.id_equipe = %s AND c.id_competicao = %s AND c.data_hora_fim IS NULL
+                """,
+                [equipe_id, compid]
+            )
+        return cursor.fetchall()
+
+@transaction.atomic
+@csrf_exempt
+def add_member_to_team(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only endpoint"}, status=405)
+    
+    try:
+        data = request.POST
+        compid = int(data.get('compid'))
+        equipe_id = int(data.get('equipe_id'))
+        id_competidor = int(data.get('id_competidor'))
+        
+        with connection.cursor() as cursor:
+            id_org = None
+            is_pred = compid % 2
+            
+            if is_pred:
+                cursor.execute("SELECT id_org_competicao FROM competicao_pred WHERE id_competicao = %s", [compid])
+            else:
+                cursor.execute("SELECT id_org_competicao FROM competicao_simul WHERE id_competicao = %s", [compid])
+            
+            result = cursor.fetchone()
+            if not result:
+                return JsonResponse({"error": "Competição não encontrada."}, status=404)
+            id_org = result[0]
+
+            if is_pred:
+                cursor.execute(
+                    """
+                    INSERT INTO composicao_equipe_pred (id_equipe, id_competicao, id_org_competicao, id_competidor, data_hora_inicio)
+                    VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    """,
+                    [equipe_id, compid, id_org, id_competidor]
+                )
+            else:
+                cursor.execute(
+                    """
+                    INSERT INTO composicao_equipe_simul (id_equipe, id_competicao, id_org_competicao, id_competidor, data_hora_inicio)
+                    VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    """,
+                    [equipe_id, compid, id_org, id_competidor]
+                )
+        
+        return JsonResponse({"message": "Membro adicionado com sucesso."}, status=201)
+
+    except IntegrityError as e:
+        return JsonResponse({"error": "Este usuário já está na equipe."}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": f"Um erro inesperado ocorreu: {e}"}, status=500)
+
+@transaction.atomic
+@csrf_exempt
+def remove_member_from_team(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only endpoint"}, status=405)
+    
+    try:
+        data = request.POST
+        compid = int(data.get('compid'))
+        equipe_id = int(data.get('equipe_id'))
+        id_competidor = int(data.get('id_competidor'))
+        
+        with connection.cursor() as cursor:
+            if compid % 2:
+                cursor.execute(
+                    """
+                    UPDATE composicao_equipe_pred
+                    SET data_hora_fim = CURRENT_TIMESTAMP
+                    WHERE id_equipe = %s AND id_competicao = %s AND id_competidor = %s
+                    """,
+                    [equipe_id, compid, id_competidor]
+                )
+            else:
+                cursor.execute(
+                    """
+                    UPDATE composicao_equipe_simul
+                    SET data_hora_fim = CURRENT_TIMESTAMP
+                    WHERE id_equipe = %s AND id_competicao = %s AND id_competidor = %s
+                    """,
+                    [equipe_id, compid, id_competidor]
+                )
+        
+        return JsonResponse({"message": "Membro removido com sucesso."}, status=200)
+
+    except Exception as e:
+        return JsonResponse({"error": f"Um erro inesperado ocorreu: {e}"}, status=500)

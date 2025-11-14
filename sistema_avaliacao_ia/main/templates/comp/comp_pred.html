@@ -8,6 +8,7 @@
 {% endblock %}
 
 {% block content %}
+{% csrf_token %}
 <div class="comp-detail-layout">
 
     <div class="comp-main-content">
@@ -38,6 +39,24 @@
                 <li>{{ organizador }}</li>
             </ul>
         </div>
+        
+        {% if user_has_team %}
+        <div class="sidebar-pod" id="team-management-pod" data-compid="{{ compid }}" data-equipeid="{{ equipe_id }}" data-currentuserid="{{ current_user_id }}">
+            <h3>Sua Equipe</h3>
+            <ul id="team-member-list" class="team-member-list">
+                {% for member in team_members %}
+                <li class="team-member-item" id="member-item-{{ member.0 }}">
+                    <span>{{ member.1 }}</span>
+                    <button type="button" class="remove-member-btn" data-userid="{{ member.0 }}">×</button>
+                </li>
+                {% endfor %}
+            </ul>
+            <div class="team-search-container">
+                <input type="text" id="team-user-search" placeholder="Adicionar novo membro...">
+                <div id="team-search-results" class="team-search-results" style="display: none;"></div>
+            </div>
+        </div>
+        {% endif %}
 
         <div class="sidebar-pod">
             <h3>Prêmios e Reconhecimento</h3>
@@ -72,4 +91,10 @@
     </div>
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+    {% if user_has_team %}
+        <script src="{% static 'js/team_manage.js' %}"></script>
+    {% endif %}
 {% endblock %}

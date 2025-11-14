@@ -146,14 +146,14 @@ def check_user_team_membership(user_id, compid):
     with connection.cursor() as cursor:
         cursor.execute(
             """
-            SELECT 1 FROM composicao_equipe_pred
-            WHERE id_competidor = %s AND id_competicao = %s
+            SELECT id_equipe FROM composicao_equipe_pred
+            WHERE id_competidor = %s AND id_competicao = %s AND data_hora_fim IS NULL
             UNION ALL
-            SELECT 1 FROM composicao_equipe_simul
-            WHERE id_competidor = %s AND id_competicao = %s
+            SELECT id_equipe FROM composicao_equipe_simul
+            WHERE id_competidor = %s AND id_competicao = %s AND data_hora_fim IS NULL
             LIMIT 1
             """,
             [user_id, compid, user_id, compid]
         )
         result = cursor.fetchone()
-    return result is not None
+    return result[0] if result else None
