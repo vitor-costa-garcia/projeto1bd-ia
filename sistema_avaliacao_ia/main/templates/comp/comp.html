@@ -26,7 +26,7 @@
         {% endif %}
     </div>
 
-    <input type="text" class="search-bar" placeholder="Pesquisar competições...">
+    <input type="text" class="search-bar" placeholder="Pesquisar competições">
 
     <div class="filter-bar">
         <button class="btn-secondary">Predição</button>
@@ -39,25 +39,25 @@
                 <div class="card-image-placeholder"></div>
                 <div class="card-content">
                     <h3 class="card-title">{{ comp.1 }}</h3>
-                    <p class="card-meta">
-                        {{ comp.2 }} · 
-                        <span style="color: #6c757d;">(Nº de Equipes)</span>
-                    </p>
+                    <p class="card-description">{{ comp.2 }}</p>
+                    <p class="card-teams">{{ comp.10 }} Equipes</p>
+                    <p class="card-meta">{{ comp.3 }}</p>
+                    
                     <div class="card-footer">
                         <span class="card-prize">
-                            {% if comp.6 == 1 %}
-                                R$ {{ comp.8|floatformat:2 }}
+                            {% if comp.7 == 1 %}
+                                R$ {{ comp.9|floatformat:2 }}
                             {% else %}
                                 Não oficial
                             {% endif %}
                         </span>
                         <span>
-                            {% if comp.5 < now %}
+                            {% if comp.6 < now %}
                                 Encerrada
-                            {% elif comp.4 < now and comp.5 > now %}
-                                Encerra em {{ comp.5|timeuntil }}
-                            {% elif comp.4 > now %}
-                                Começa em {{ comp.4|timeuntil }}
+                            {% elif comp.5 < now and comp.6 > now %}
+                                Encerra em {{ comp.6|timeuntil }}
+                            {% elif comp.5 > now %}
+                                Começa em {{ comp.5|timeuntil }}
                             {% else %}
                                 Em breve
                             {% endif %}

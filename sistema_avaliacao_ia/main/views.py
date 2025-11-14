@@ -2,11 +2,11 @@ from django.db import connection
 from django.shortcuts import redirect, render
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
-from api.queries.user_queries import check_if_user_is_organizer, fetch_user_auth_data_by_email, get_all_user
+from api.queries.user_queries import check_if_user_is_organizer, fetch_user_auth_data_by_email, get_all_user, check_user_team_membership
 from api.queries.comp_queries import get_all_competitions
-import requests
-from django.utils import timezone
 from datetime import datetime
+from django.utils import timezone
+import requests
 
 def index(request):
     if request.session.get('user_id'):
@@ -21,13 +21,13 @@ def comp(request):
     processed_competitions = []
     for comp_list in competitions_data:
         try:
-            comp_list[4] = datetime.fromisoformat(comp_list[4])
+            comp_list[5] = datetime.fromisoformat(comp_list[5].replace(" ", "T"))
         except (ValueError, TypeError, IndexError):
-            pass 
+            pass
         try:
-            comp_list[5] = datetime.fromisoformat(comp_list[5])
+            comp_list[6] = datetime.fromisoformat(comp_list[6].replace(" ", "T"))
         except (ValueError, TypeError, IndexError):
-            pass 
+            pass
         processed_competitions.append(comp_list)
     
     now = timezone.now()
@@ -83,6 +83,12 @@ def comp_form(request):
     return render(request, "comp/comp_form.html", context)
 
 def comp_view(request, compid):
+    user_id = request.session.get('user_id')
+    user_has_team = False
+    
+    if user_id:
+        user_has_team = check_user_team_membership(user_id, compid)
+
     api_url = f"http://127.0.0.1:8000/api/comp/get-competition/{compid}"
     
     response = requests.get(api_url)
@@ -91,6 +97,15 @@ def comp_view(request, compid):
     data = compdata['competition'][0]
     n_eq = compdata['n_teams'][0]
     n_ca = compdata['n_comp'][0]
+    
+    try:
+        data[7] = datetime.fromisoformat(data[7].replace(" ", "T"))
+    except (ValueError, TypeError, IndexError):
+        pass
+    try:
+        data[8] = datetime.fromisoformat(data[8].replace(" ", "T"))
+    except (ValueError, TypeError, IndexError):
+        pass
 
     context = {
             "compid": data[0],
@@ -106,7 +121,8 @@ def comp_view(request, compid):
             "premiacao": data[10],
             "n_equipes": n_eq[0],
             "n_comp": n_ca[0],
-            "user_name": request.session.get('user_name')
+            "user_name": request.session.get('user_name'),
+            "user_has_team": user_has_team
         }
 
     if compid%2:
@@ -130,7 +146,7 @@ def reports(request):
     context = {
         "user_name": request.session.get('user_name')
     }
-    return render(request, "reports/reports.html")
+    return render(request, "reports/reports.html", context)
 
 def user(request):
     user_id = request.session.get('user_id')

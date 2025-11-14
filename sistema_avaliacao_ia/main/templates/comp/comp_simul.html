@@ -4,30 +4,71 @@
 {% block title %}{{ titulo }} - Predicto{% endblock %}
 
 {% block extra_head %}
+    <link rel="stylesheet" href="{% static 'css/comp_detail.css' %}">
 {% endblock %}
 
 {% block content %}
-    <h1>{{ titulo }}</h1>
-    <br>
-    <p>{{ descricao }}</p>
-    <p>Organizador: {{ organizador }}</p>
-    <p>Dificuldade: {{ dificuldade }}</p>
-    <p>Competidores ativos: {{ n_comp }}</p>
-    <p>Equipes registradas: {{ n_equipes }}</p>
-    <p>Data de início: {{ data_inicio|date:"d M Y" }}</p>
-    <p>Data término: {{ data_fim|date:"d M Y" }}</p>
-    <p>Métrica desempenho usada: {{ metrica_desempenho }}</p>
-    {% if flg_oficial == 1 %}
-        <p>Prêmio: R$ {{ premiacao|floatformat:2 }}</p>
-    {% endif %}
+<div class="comp-detail-layout">
 
-    <hr>
-    
-    <a href="{% url 'main:create-team' compid %}">
-        <button>Inscrever Equipe</button>
-    </a>
-    
-    <hr>
-    
-    <button onclick="window.location.href='/api/comp/download-competition-file/{{ compid }}/0/'">Baixar Ambiente</button>
+    <div class="comp-main-content">
+        <h1>{{ titulo }}</h1>
+        <p class="subtitle">{{ descricao }}</p>
+
+        <h2>Descrição</h2>
+        <p>{{ descricao }}</p>
+
+        <h2>Dados</h2>
+        <p>Baixe o ambiente necessário para a competição.</p>
+        <div class="download-buttons">
+            <button onclick="window.location.href='/api/comp/download-competition-file/{{ compid }}/0/'">Baixar Ambiente</button>
+        </div>
+    </div>
+
+    <div class="comp-sidebar">
+        {% if not user_has_team %}
+        <a href="{% url 'main:create-team' compid %}" style="text-decoration: none;" class="button-container">
+            <button>Inscrever Equipe</button>
+        </a>
+        {% endif %}
+
+        <div class="sidebar-pod">
+            <h3>Host da Competição</h3>
+            <ul>
+                <li>{{ organizador }}</li>
+            </ul>
+        </div>
+
+        <div class="sidebar-pod">
+            <h3>Prêmios e Reconhecimento</h3>
+            <ul>
+                <li>
+                    {% if flg_oficial == 1 %}
+                        <strong>R$ {{ premiacao|floatformat:2 }}</strong>
+                    {% else %}
+                        <strong>Não oficial</strong>
+                    {% endif %}
+                </li>
+            </ul>
+        </div>
+
+        <div class="sidebar-pod">
+            <h3>Participação</h3>
+            <ul>
+                <li><strong>{{ n_equipes }}</strong> Equipes</li>
+                <li><strong>{{ n_comp }}</strong> Competidores Ativos</li>
+            </ul>
+        </div>
+        
+        <div class="sidebar-pod">
+            <h3>Informações</h3>
+            <ul>
+                <li><strong>Dificuldade:</strong> {{ dificuldade }}</li>
+                <li><strong>Métrica:</strong> {{ metrica_desempenho }}</li>
+                <li><strong>Início:</strong> {{ data_inicio|date:"d M Y" }}</li>
+                <li><strong>Fim:</strong> {{ data_fim|date:"d M Y" }}</li>
+            </ul>
+        </div>
+    </div>
+
+</div>
 {% endblock %}
