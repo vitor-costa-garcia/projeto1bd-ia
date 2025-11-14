@@ -4,9 +4,9 @@ from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
 from api.queries.user_queries import check_if_user_is_organizer, fetch_user_auth_data_by_email, get_all_user
 from api.queries.comp_queries import get_all_competitions
-from datetime import datetime, timezone
-from django.utils import timezone
 import requests
+from django.utils import timezone
+from datetime import datetime
 
 def index(request):
     if request.session.get('user_id'):
@@ -23,17 +23,18 @@ def comp(request):
         try:
             comp_list[4] = datetime.fromisoformat(comp_list[4])
         except (ValueError, TypeError, IndexError):
-            pass
+            pass 
         try:
             comp_list[5] = datetime.fromisoformat(comp_list[5])
         except (ValueError, TypeError, IndexError):
-            pass
+            pass 
         processed_competitions.append(comp_list)
     
     now = timezone.now()
 
     is_organizer = False
     user_id = request.session.get('user_id')
+    user_name = request.session.get('user_name')
 
     if user_id:
         is_organizer = check_if_user_is_organizer(user_id)
@@ -41,7 +42,8 @@ def comp(request):
     context = {
         "competitions" : processed_competitions,
         "is_organizer": is_organizer,
-        "now": now
+        "now": now,
+        "user_name": user_name
     }
     return render(request, "comp/comp.html", context)
 
@@ -73,9 +75,12 @@ def comp_form(request):
         except requests.exceptions.RequestException as e:
             messages.error(request, f"Erro de conexão com a API: {e}")
 
-        return render(request, "comp/comp_form.html")
-
-    return render(request, "comp/comp_form.html")
+    server_today = timezone.now().strftime('%Y-%m-%d')
+    context = {
+        'server_today': server_today,
+        "user_name": request.session.get('user_name')
+    }
+    return render(request, "comp/comp_form.html", context)
 
 def comp_view(request, compid):
     api_url = f"http://127.0.0.1:8000/api/comp/get-competition/{compid}"
@@ -100,7 +105,8 @@ def comp_view(request, compid):
             "metrica_desempenho": data[9],
             "premiacao": data[10],
             "n_equipes": n_eq[0],
-            "n_comp": n_ca[0]
+            "n_comp": n_ca[0],
+            "user_name": request.session.get('user_name')
         }
 
     if compid%2:
@@ -121,6 +127,9 @@ def ranking(request):
     return render(request, "ranking/ranking.html", context)
 
 def reports(request):
+    context = {
+        "user_name": request.session.get('user_name')
+    }
     return render(request, "reports/reports.html")
 
 def user(request):
@@ -132,7 +141,8 @@ def user(request):
     is_organizer = check_if_user_is_organizer(user_id)
     
     context = {
-        'is_organizer': is_organizer
+        'is_organizer': is_organizer,
+        "user_name": request.session.get('user_name')
     }
     
     return render(request, "user/user.html", context)
@@ -228,3 +238,40 @@ def become_organizer(request):
         messages.error(request, f"Erro de conexão com a API: {e}")
 
     return redirect('main:user-profile')
+
+def create_team_view(request, compid):
+    user_id = request.session.get('user_id')
+    if not user_id:
+        messages.error(request, 'Você precisa estar logado para criar uma equipe.')
+        return redirect('main:login')
+    
+    if request.method == 'POST':
+        nome_equipe = request.POST.get('nome_equipe')
+        
+        payload = {
+            'compid': compid,
+            'id_competidor': user_id,
+            'nome_equipe': nome_equipe,
+            'members': request.POST.getlist('members')
+        }
+        
+        try:
+            api_url = "http://127.0.0.1:8000/api/comp/create-team/"
+            response = requests.post(api_url, data=payload)
+            data = response.json()
+
+            if response.status_code == 201:
+                messages.success(request, f"Equipe '{nome_equipe}' criada com sucesso!")
+                return redirect('main:comp-viewer', compid=compid)
+            else:
+                messages.error(request, data.get('error', 'Ocorreu um erro desconhecido.'))
+        
+        except requests.exceptions.RequestException as e:
+            messages.error(request, f"Erro de conexão com a API: {e}")
+
+    context = {
+        "user_name": request.session.get('user_name'),
+        "compid": compid,
+        "current_user_id": user_id
+    }
+    return render(request, "equipe/equipe_form.html", context)

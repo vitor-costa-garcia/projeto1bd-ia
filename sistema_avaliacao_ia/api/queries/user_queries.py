@@ -1,28 +1,22 @@
-from django.db import IntegrityError, connection
-from django.http import JsonResponse
-from django.contrib.auth.hashers import make_password
+from django.db import connection, IntegrityError, transaction
+from django.http import JsonResponse, FileResponse
+from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
+from django.core.files.storage import FileSystemStorage
+from datetime import date
+import os
+from django.contrib.auth.hashers import make_password
 
 def get_user(request, id):
     with connection.cursor() as cursor:
-        cursor.execute("SELECT * FROM usuario WHERE id = %d", [id])
+        cursor.execute("SELECT * FROM usuario WHERE id = %s", [id])
         result = cursor.fetchall()
 
     return JsonResponse({"users": result})
-
-def fetch_user_auth_data_by_email(email):
-    with connection.cursor() as cursor:
-        cursor.execute(
-            "SELECT id, nome, senha FROM usuario WHERE email = %s",
-            [email]
-        )
-        user_data = cursor.fetchone()
-    
-    return user_data
     
 def get_all_user(request):
     with connection.cursor() as cursor:
-        cursor.execute("SELECT id, nome, email FROM usuario", [id])
+        cursor.execute("SELECT id, nome, email FROM usuario")
         result =  cursor.fetchall()
     
     return JsonResponse({"users": result})
@@ -31,18 +25,19 @@ def get_all_user(request):
 def create_user(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST only endpoint"}, status=405)
-
+    
     try:
-        nome = request.POST.get('nome')
-        email = request.POST.get('email')
-        senha_plana = request.POST.get('senha')
-        datanasc = request.POST.get('datanascimento')
+        data = request.POST
+        nome = data.get('nome')
+        email = data.get('email')
+        senha_plana = data.get('senha')
+        datanasc = data.get('datanascimento')
         
-        numero = request.POST.get('numero') or None
-        rua = request.POST.get('rua') or None
-        cidade = request.POST.get('cidade') or None
-        estado = request.POST.get('estado') or None
-        pais = request.POST.get('pais') or None
+        numero = data.get('numero') or None
+        rua = data.get('rua') or None
+        cidade = data.get('cidade') or None
+        estado = data.get('estado') or None
+        pais = data.get('pais') or None
 
         if not all([nome, email, senha_plana, datanasc]):
              return JsonResponse({"error": "Campos obrigatórios faltando"}, status=400)
@@ -66,9 +61,11 @@ def create_user(request):
                 "user_nome": new_user[1]
             }, status=201)
 
+    except IntegrityError as e:
+        return JsonResponse({"error": f"Erro de Banco de Dados: {e}"}, status=400)
     except Exception as e:
-        return JsonResponse({"error": f"Erro ao criar usuário: {e}"}, status=400)
-    
+        return JsonResponse({"error": f"Um erro inesperado ocorreu: {e}"}, status=500)
+
 @csrf_exempt
 def create_organizer(request):
     if request.method != "POST":
@@ -104,6 +101,16 @@ def create_organizer(request):
     except Exception as e:
         return JsonResponse({"error": f"Um erro inesperado ocorreu: {e}"}, status=500)
 
+def fetch_user_auth_data_by_email(email):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT id, nome, senha FROM usuario WHERE email = %s",
+            [email]
+        )
+        user_data = cursor.fetchone()
+    
+    return user_data
+
 def check_if_user_is_organizer(user_id):
     with connection.cursor() as cursor:
         cursor.execute(
@@ -113,3 +120,24 @@ def check_if_user_is_organizer(user_id):
         result = cursor.fetchone()
     
     return result is not None
+
+def search_users(request):
+    query = request.GET.get('q', '').strip()
+    current_user_id = request.GET.get('exclude', 0)
+    
+    if not query:
+        return JsonResponse({"users": []})
+
+    with connection.cursor() as cursor:
+        search_query = f"%{query}%"
+        cursor.execute(
+            """
+            SELECT id, nome FROM usuario
+            WHERE nome ILIKE %s AND id != %s
+            LIMIT 10
+            """,
+            [search_query, current_user_id]
+        )
+        users = cursor.fetchall()
+    
+    return JsonResponse({"users": users})

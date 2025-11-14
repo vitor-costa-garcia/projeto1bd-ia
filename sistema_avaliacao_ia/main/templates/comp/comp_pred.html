@@ -1,24 +1,34 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Predicto - Competição</title>
-</head>
-<body>
-    <h1>Competição {{ compid }}</h1>
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ titulo }} - Predicto{% endblock %}
+
+{% block extra_head %}
+{% endblock %}
+
+{% block content %}
+    <h1>{{ titulo }}</h1>
     <br>
-    <p>{{ titulo }}</p>
     <p>{{ descricao }}</p>
     <p>Organizador: {{ organizador }}</p>
     <p>Dificuldade: {{ dificuldade }}</p>
     <p>Competidores ativos: {{ n_comp }}</p>
     <p>Equipes registradas: {{ n_equipes }}</p>
-    <p>Data de início: {{ data_inicio }}</p>
-    <p>Data término: {{ data_fim }}</p>
+    <p>Data de início: {{ data_inicio|date:"d M Y" }}</p>
+    <p>Data término: {{ data_fim|date:"d M Y" }}</p>
     <p>Métrica desempenho usada: {{ metrica_desempenho }}</p>
-    {% if flg_oficial == 1 %}<p>Premio: {{ premiacao }}</p>{% endif %}
+    {% if flg_oficial == 1 %}
+        <p>Prêmio: R$ {{ premiacao|floatformat:2 }}</p>
+    {% endif %}
+
+    <hr>
+    
+    <a href="{% url 'main:create-team' compid %}">
+        <button>Inscrever Equipe</button>
+    </a>
+    
+    <hr>
+    
     <button onclick="window.location.href='/api/comp/download-competition-file/{{ compid }}/0/'">Baixar Dataset Treino/Teste</button>
     <button onclick="window.location.href='/api/comp/download-competition-file/{{ compid }}/1/'">Baixar Dataset Submissão</button>
-</body>
-</html>
+{% endblock %}
