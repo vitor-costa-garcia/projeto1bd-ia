@@ -1,64 +1,71 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Predicto - Competições</title>
-</head>
-<body>
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Competições - Predicto{% endblock %}
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'css/comp.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
     {% if messages %}
         <ul class="messages">
             {% for message in messages %}
-                {% if message.tags == 'success' %}
-                    <li style="color: green; list-style: none;"><b>{{ message }}</b></li>
-                {% else %}
-                    <li style="color: red; list-style: none;"><b>{{ message }}</b></li>
-                {% endif %}
+                <li class="{{ message.tags }}">{{ message }}</li>
             {% endfor %}
         </ul>
     {% endif %}
     
-    <h1>Competições</h1>
+    <div class="page-header">
+        <h1>Competições</h1>
+        {% if is_organizer %}
+            <a href="{% url 'main:comp-form' %}">
+                <button>Organizar uma Competição</button>
+            </a>
+        {% endif %}
+    </div>
 
-    <a href="{% url 'main:comp-form' %}">
-        <button>Organizar uma Competição</button>
-    </a>
+    <input type="text" class="search-bar" placeholder="Pesquisar competições...">
 
-    <hr>
+    <div class="filter-bar">
+        <button class="btn-secondary">Predição</button>
+        <button class="btn-secondary">Simulação</button>
+    </div>
 
-    <button>Predição</button>
-    <button>Simulação</button>
-
-    <table>
-        <caption>Competições</caption>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Título</th>
-                <th>Tipo</th>
-                <th>Organizador</th>
-                <th>Data início</th>
-                <th>Data fim</th>
-                <th>Dificuldade</th>
-                <th>Oficial</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for comp in competitions %}
-            <tr>
-                <td>{{ comp.0 }}</td>
-                <td>{{ comp.1 }}</td>
-                <td>{{ comp.2 }}</td>
-                <td>{{ comp.3 }}</td>
-                <td>{{ comp.4 }}</td>
-                <td>{{ comp.5 }}</td>
-                <td>{{ comp.7 }}</td>
-                <td>{% if comp.6 == 0 %}Não{% else %}Sim{% endif %}</td>
-                <td><a href="{{ comp.0 }}"><button>Ver</button></a></td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</body>
-</html>
+    <div class="card-grid">
+        {% for comp in competitions %}
+            <a href="{% url 'main:comp-viewer' comp.0 %}" class="competition-card">
+                <div class="card-image-placeholder"></div>
+                <div class="card-content">
+                    <h3 class="card-title">{{ comp.1 }}</h3>
+                    <p class="card-meta">
+                        {{ comp.2 }} · 
+                        <span style="color: #6c757d;">(Nº de Equipes)</span>
+                    </p>
+                    <div class="card-footer">
+                        <span class="card-prize">
+                            {% if comp.6 == 1 %}
+                                R$ {{ comp.8|floatformat:2 }}
+                            {% else %}
+                                Não oficial
+                            {% endif %}
+                        </span>
+                        <span>
+                            {% if comp.5 < now %}
+                                Encerrada
+                            {% elif comp.4 < now and comp.5 > now %}
+                                Encerra em {{ comp.5|timeuntil }}
+                            {% elif comp.4 > now %}
+                                Começa em {{ comp.4|timeuntil }}
+                            {% else %}
+                                Em breve
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

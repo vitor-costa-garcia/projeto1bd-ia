@@ -74,7 +74,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": "provabd",
         "USER": "postgres",
-        "PASSWORD": "vitorgarcia",
+        "PASSWORD": config("DB_PASSWORD"),
         "HOST": "localhost",
         "PORT": "5432",
     }

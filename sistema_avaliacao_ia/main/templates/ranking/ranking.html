@@ -1,17 +1,23 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Predicto - Rankings</title>
-</head>
-<body>
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Rankings - Predicto{% endblock %}
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'css/ranking.css' %}">
+{% endblock %}
+
+{% block content %}
     <h1>Ranking</h1>
-    <button>Global</button>
-    <button>Medalhas</button>
-    <button>Classificação</button>
-    <button>Competições predição</button>
-    <button>Competições simulação</button>
+    
+    <div class="filter-bar">
+        <button class="btn-secondary">Global</button>
+        <button class="btn-secondary">Medalhas</button>
+        <button class="btn-secondary">Classificação</button>
+        <button class="btn-secondary">Competições predição</button>
+        <button class="btn-secondary">Competições simulação</button>
+    </div>
+
     <table>
         <caption>Ranking global de pontos</caption>
         <thead>
@@ -31,5 +37,4 @@
             {% endfor %}
         </tbody>
     </table>
-</body>
-</html>
+{% endblock %}

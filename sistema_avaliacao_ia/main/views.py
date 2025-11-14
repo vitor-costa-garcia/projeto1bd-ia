@@ -4,24 +4,44 @@ from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
 from api.queries.user_queries import check_if_user_is_organizer, fetch_user_auth_data_by_email, get_all_user
 from api.queries.comp_queries import get_all_competitions
+from datetime import datetime, timezone
+from django.utils import timezone
 import requests
 
 def index(request):
     if request.session.get('user_id'):
-        context = {
-            'user_id': request.session.get('user_id'),
-            'user_name': request.session.get('user_name')
-        }
-        return render(request, "index.html", context)
+        return redirect('main:comp')
     else:
         return redirect('main:login')
 
 def comp(request):
     resp = requests.get("http://127.0.0.1:8000/api/comp/get-all-competitions/")
-    competitions = resp.json()['competitions']
+    competitions_data = resp.json()['competitions']
+
+    processed_competitions = []
+    for comp_list in competitions_data:
+        try:
+            comp_list[4] = datetime.fromisoformat(comp_list[4])
+        except (ValueError, TypeError, IndexError):
+            pass
+        try:
+            comp_list[5] = datetime.fromisoformat(comp_list[5])
+        except (ValueError, TypeError, IndexError):
+            pass
+        processed_competitions.append(comp_list)
+    
+    now = timezone.now()
+
+    is_organizer = False
+    user_id = request.session.get('user_id')
+
+    if user_id:
+        is_organizer = check_if_user_is_organizer(user_id)
 
     context = {
-        "competitions" : competitions
+        "competitions" : processed_competitions,
+        "is_organizer": is_organizer,
+        "now": now
     }
     return render(request, "comp/comp.html", context)
 
@@ -95,7 +115,8 @@ def ranking(request):
     rankinglist = resp.json()['users']
 
     context = {
-        "rankinglist" : rankinglist
+        "rankinglist" : rankinglist,
+        "user_name": request.session.get('user_name')
     }
     return render(request, "ranking/ranking.html", context)
 

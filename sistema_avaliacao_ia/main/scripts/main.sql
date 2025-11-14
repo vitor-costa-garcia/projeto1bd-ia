@@ -51,7 +51,7 @@ CREATE TABLE competicao_pred(
     dataset_submissao VARCHAR(200) NOT NULL,
     dataset_gabarito VARCHAR(200) NOT NULL,
     premiacao DECIMAL(10,2) CHECK(flg_oficial = 1 OR premiacao IS NULL),
-    CONSTRAINT "CHECK_DATAS_COMPETICAO_PRED" CHECK (data_inicio::date >= data_criacao::date AND data_fim >= data_inicio),
+    CONSTRAINT "CHECK_DATAS_COMPETICAO_PRED" CHECK (data_fim >= data_inicio),
     CONSTRAINT "PK_COMPETICAO_PRED" PRIMARY KEY (id_competicao, id_org_competicao)
 );
 
@@ -131,7 +131,7 @@ CREATE TABLE competicao_simul(
     )),
     ambiente VARCHAR(200) NOT NULL,
     premiacao DECIMAL(10,2) CHECK(flg_oficial = 1 OR premiacao IS NULL),
-    CONSTRAINT "CHECK_DATAS_COMPETICAO_SIMUL" CHECK (data_inicio::date >= data_criacao::date AND data_fim >= data_inicio),
+    CONSTRAINT "CHECK_DATAS_COMPETICAO_SIMUL" CHECK (data_fim >= data_inicio),
     CONSTRAINT "PK_COMPETICAO_SIMUL_OFC" PRIMARY KEY (id_competicao, id_org_competicao)
 );
 
