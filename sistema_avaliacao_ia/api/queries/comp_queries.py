@@ -109,6 +109,18 @@ def get_simulation_competitions(request):
         result = cursor.fetchall()
         return JsonResponse({"competitions":result})
 
+def post_submission(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only endpoint"}, status=405)
+
+    try:
+        data = request.POST
+
+        submission = data.get('submission') #dar um jeito de pegar o id da competição aqui
+
+    except:
+        pass
+
 def get_nextseq_comp(type, add):
     with connection.cursor() as cursor:
         if type == 0:

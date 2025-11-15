@@ -29,13 +29,14 @@
     <input type="text" class="search-bar" placeholder="Pesquisar competições...">
 
     <div class="filter-bar">
-        <button>Predição</button>
-        <button>Simulação</button>
+        <button onclick="HideSimulShowPred()">Predição</button>
+        <button onclick="HidePredShowSimul()">Simulação</button>
+        <button onclick="ClearFilter()">Todas</button>
     </div>
 
     <div class="card-grid">
         {% for comp in competitions %}
-            <a href="{% url 'main:comp-viewer' comp.0 %}" class="competition-card">
+            <a href="{% url 'main:comp-viewer' comp.0 %}" class="competition-card" id="{{ comp.0 }}">
                 <div class="card-image-placeholder"></div>
                 <div class="card-content">
                     <h3 class="card-title">{{ comp.1 }}</h3>
@@ -68,4 +69,6 @@
         {% endfor %}
     </div>
 </div>
+
+<script src="{% static 'js/comp_filter_home.js' %}"></script>
 {% endblock %}

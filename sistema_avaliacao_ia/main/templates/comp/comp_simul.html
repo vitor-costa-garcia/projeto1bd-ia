@@ -54,6 +54,12 @@
                 <input type="text" id="team-user-search" placeholder="Adicionar novo membro...">
                 <div id="team-search-results" class="team-search-results" style="display: none;"></div>
             </div>
+            <h3 style="margin-top:20px">Submissões</h3>
+            <form>
+                <input type="text" value="{{ comp.0 }}" style="display:none">
+                <input type="file" accept=".py" name="submission-input">
+                <button style="margin-top: 20px" type="submit">Enviar Submissão</button>
+            </form>
         </div>
         {% endif %}
 
