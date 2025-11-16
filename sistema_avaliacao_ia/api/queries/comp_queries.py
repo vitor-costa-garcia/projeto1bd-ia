@@ -177,7 +177,6 @@ def post_submission(request, compid, equipeid):
         error = rmse_from_csv(submission_path, gabarito_path)
         print("RMSE:", error)
 
-        # TODO: insert into database
         with connection.cursor() as cursor:
             cursor.execute("""
                                 INSERT INTO submissao_equipe_pred (

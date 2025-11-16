@@ -22,7 +22,8 @@
     {% endif %}
 
     <p>Medalhas:</p>
-    <p>Ouro: 7 Prata: 41 Bronze 47</p>
+    <p>Ouro: {{ user_prizes.0.1 }} Prata: {{ user_prizes.1.1 }} Bronze {{ user_prizes.2.1 }}</p>
+    <p>Premiações em dinheiro: {{ user_prizes.3.1 }}</p>
     <button>Histórico competições</button>
     <button>Editar</button>
 

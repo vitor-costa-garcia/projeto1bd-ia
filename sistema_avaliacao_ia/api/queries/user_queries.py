@@ -157,3 +157,35 @@ def check_user_team_membership(user_id, compid):
         )
         result = cursor.fetchone()
     return result[0] if result else None
+
+def get_user_prizes(request, userid):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            WITH todos_premios AS (
+                SELECT tipo FROM premios_competidor_pred WHERE id_competidor = %s
+                UNION ALL
+                SELECT tipo FROM premios_competidor_simul WHERE id_competidor = %s
+            ),
+            tipos AS (
+                SELECT * FROM (VALUES (0), (1), (2), (3)) AS t(tipo)
+            )
+            SELECT
+                t.tipo,
+                COALESCE(COUNT(tp.tipo), 0) AS total
+            FROM
+                tipos t
+            LEFT JOIN
+                todos_premios tp
+                ON t.tipo = tp.tipo
+            GROUP BY
+                t.tipo;
+            """,
+            [userid, userid]
+        )
+
+        result = cursor.fetchall()
+
+    return JsonResponse({"user_prizes": result})
+
+

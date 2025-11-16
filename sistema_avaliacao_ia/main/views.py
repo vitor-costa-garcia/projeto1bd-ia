@@ -178,10 +178,16 @@ def user(request):
         return redirect('main:login')
 
     is_organizer = check_if_user_is_organizer(user_id)
+
+    api_url = f"http://127.0.0.1:8000/api/user/get-user-prizes/{user_id}/"
+    resp = requests.get(api_url)
+    user_prizes = resp.json()['user_prizes']
+    print(f"user prizes {user_prizes}")
     
     context = {
         'is_organizer': is_organizer,
-        "user_name": request.session.get('user_name')
+        "user_name": request.session.get('user_name'),
+        "user_prizes": user_prizes
     }
     
     return render(request, "user/user.html", context)
