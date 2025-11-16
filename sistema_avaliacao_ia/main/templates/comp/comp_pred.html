@@ -24,6 +24,31 @@
             <button onclick="window.location.href='/api/comp/download-competition-file/{{ compid }}/0/'">Baixar Dataset Treino/Teste</button>
             <button onclick="window.location.href='/api/comp/download-competition-file/{{ compid }}/1/'">Baixar Dataset Submissão</button>
         </div>
+
+        <h2>Top 20 – Ranking</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+            <thead>
+                <tr style="background: #e6e6e6; border-bottom: 2px solid #bbb;">
+                    <th style="padding: 10px; text-align: left;">Equipe</th>
+                    <th style="padding: 10px; text-align: left;">Score</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for item in ranking_top20 %}
+                <tr style="border-bottom: 1px solid #ddd;">
+                    <td style="padding: 8px;">{{ item.0 }}</td>
+                    <td style="padding: 8px;">{{ item.1 }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="2" style="padding: 10px; text-align: center; color: #777;">
+                        Nenhum participante rankeado ainda.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
     <div class="comp-sidebar">
@@ -55,7 +80,41 @@
                 <input type="text" id="team-user-search" placeholder="Adicionar novo membro...">
                 <div id="team-search-results" class="team-search-results" style="display: none;"></div>
             </div>
-            <button style="margin-top: 20px">Enviar Submissão</button>
+            <h3 style="margin-top:20px">Submissões</h3>
+
+            <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                <thead>
+                    <tr style="background: #f0f0f0; border-bottom: 2px solid #ccc;">
+                        <th style="padding: 8px; text-align: left;">Data de Envio</th>
+                        <th style="padding: 8px; text-align: left;">Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sub in submissoes %}
+                        <tr style="border-bottom: 1px solid #ddd;">
+                            <td style="padding: 8px;">{{ sub.0 }}</td>
+                            <td style="padding: 8px;">{{ sub.1 }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="2" style="padding: 8px; text-align: center; color: #888;">
+                                Nenhuma submissão ainda.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <form 
+                action="{% url 'main:comp-submission' compid=compid equipeid=equipe_id %}"
+                method="POST"
+                enctype="multipart/form-data"
+            >
+                {% csrf_token %}
+                <input type="hidden" name="comp_hidden" value="{{ comp.0 }}">
+                <input type="file" accept=".csv" name="submission-input">
+                <button style="margin-top: 20px" type="submit">Enviar Submissão</button>
+            </form>
         </div>
         {% endif %}
 

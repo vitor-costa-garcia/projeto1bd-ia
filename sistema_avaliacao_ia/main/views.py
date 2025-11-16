@@ -16,7 +16,7 @@ def index(request):
 
 def comp(request):
     resp = requests.get("http://127.0.0.1:8000/api/comp/get-all-competitions/")
-    competitions_data = resp.json()['competitions']
+    competitions_data = resp.json()['competitions'] or []
 
     processed_competitions = []
     for comp_list in competitions_data:
@@ -86,11 +86,26 @@ def comp_view(request, compid):
     user_id = request.session.get('user_id')
     equipe_id = None
     team_members = []
+    submission_data = []
     
     if user_id:
         equipe_id = check_user_team_membership(user_id, compid)
         if equipe_id:
             team_members = get_team_members(compid, equipe_id)
+            api_url = f"http://127.0.0.1:8000/api/comp/get-submissions/{compid}/{equipe_id}"
+            response = requests.get(api_url)
+            submission_data = response.json()['submissoes']
+            print(submission_data)
+    
+            response = requests.get(api_url)
+
+    api_url = f"http://127.0.0.1:8000/api/comp/get-ranking-comp/{compid}"
+    
+    response = requests.get(api_url)
+
+    print(response)
+    rank_data = response.json()
+    ranking_data = rank_data["ranking_top20"]
 
     api_url = f"http://127.0.0.1:8000/api/comp/get-competition/{compid}"
     
@@ -128,7 +143,9 @@ def comp_view(request, compid):
             "user_has_team": equipe_id is not None,
             "equipe_id": equipe_id,
             "team_members": team_members,
-            "current_user_id": user_id
+            "current_user_id": user_id,
+            "submissoes": submission_data,
+            "ranking_top20": ranking_data
         }
 
     if compid%2:
@@ -297,3 +314,48 @@ def create_team_view(request, compid):
         "current_user_id": user_id
     }
     return render(request, "equipe/equipe_form.html", context)
+
+def comp_submission(request, compid, equipeid):
+    if request.method == 'POST':
+        user_id = request.session.get('user_id')
+        if not user_id:
+            messages.error(request, 'Você precisa estar logado para enviar uma submissão.')
+            return redirect('main:login') 
+
+        # form data
+        payload = request.POST.copy()
+
+        # uploaded files
+        files = request.FILES
+
+        try:
+            api_url = f"http://127.0.0.1:8000/api/comp/post-submission/{compid}/{equipeid}/"
+
+            print("CLIENT PAYLOAD:", payload)
+            print("CLIENT FILES:", files)
+
+            # THE IMPORTANT FIX:
+            response = requests.post(
+                api_url,
+                data=payload,
+                files={'submission-input': files.get('submission-input')}
+            )
+
+            print("API STATUS:", response.status_code)
+            print("API RAW RESPONSE:", response.text)
+
+            # This will only work if API returns JSON
+            data = response.json()
+
+            if response.status_code == 201:
+                messages.success(request, 'Submissão criada com sucesso!')
+                return redirect('main:comp')
+            else:
+                error = data.get("error", "Erro desconhecido")
+                messages.error(request, error)
+        
+        except Exception as e:
+            messages.error(request, f"Erro de conexão com a API: {e}")
+
+    return redirect('main:comp')
+
