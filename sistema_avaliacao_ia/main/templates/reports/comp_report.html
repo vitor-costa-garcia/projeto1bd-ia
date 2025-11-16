@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Relatório: {{ comp_title }}{% endblock %}
+
+{% block extra_head %}
+{% endblock %}
+
+{% block content %}
+    <h1>Relatório da Competição</h1>
+    <h2>{{ comp_title }} (ID: {{ compid }})</h2>
+
+    <p>Esta página conterá as estatísticas e gráficos para esta competição.</p>
+
+    <a href="{% url 'main:comp-viewer' compid %}">
+        <button type"button" class="btn-secondary">Voltar para Competição</button>
+    </a>
+{% endblock %}

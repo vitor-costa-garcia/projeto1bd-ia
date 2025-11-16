@@ -32,6 +32,10 @@
         </a>
         {% endif %}
 
+        <a href="{% url 'main:comp-report' compid %}" style="text-decoration: none;" class="button-container">
+            <button type="button" class="btn-secondary" style="width:100%;">Gerar Relatório</button>
+        </a>
+
         <div class="sidebar-pod">
             <h3>Host da Competição</h3>
             <ul>
@@ -54,11 +58,38 @@
                 <input type="text" id="team-user-search" placeholder="Adicionar novo membro...">
                 <div id="team-search-results" class="team-search-results" style="display: none;"></div>
             </div>
-            <h3 style="margin-top:20px">Submissões</h3>
-            <form>
-                <input type="text" value="{{ comp.0 }}" style="display:none">
-                <input type="file" accept=".py" name="submission-input">
-                <button style="margin-top: 20px" type="submit">Enviar Submissão</button>
+            
+            <h3 class="submission-form-title">Submissões</h3>
+            <table class="comp-table">
+                <thead>
+                    <tr>
+                        <th>Data de Envio</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sub in submissoes %}
+                        <tr>
+                            <td>{{ sub.0 }}</td>
+                            <td>{{ sub.1 }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr class="comp-table-empty">
+                            <td colspan="2">Nenhuma submissão ainda.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <form 
+                action="{% url 'main:comp-submission' compid=compid equipeid=equipe_id %}"
+                method="POST"
+                enctype="multipart/form-data"
+            >
+                {% csrf_token %}
+                <input type="hidden" name="comp_hidden" value="{{ compid }}">
+                <input type="file" accept=".py" name="submission-input" class="submission-form-file">
+                <button class="submission-form-button" type="submit">Enviar Submissão</button>
             </form>
         </div>
         {% endif %}

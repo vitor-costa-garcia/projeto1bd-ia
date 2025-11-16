@@ -95,20 +95,13 @@ def comp_view(request, compid):
             api_url = f"http://127.0.0.1:8000/api/comp/get-submissions/{compid}/{equipe_id}"
             response = requests.get(api_url)
             submission_data = response.json()['submissoes']
-            print(submission_data)
     
-            response = requests.get(api_url)
-
     api_url = f"http://127.0.0.1:8000/api/comp/get-ranking-comp/{compid}"
-    
     response = requests.get(api_url)
-
-    print(response)
     rank_data = response.json()
     ranking_data = rank_data["ranking_top20"]
 
     api_url = f"http://127.0.0.1:8000/api/comp/get-competition/{compid}"
-    
     response = requests.get(api_url)
 
     compdata = response.json()
@@ -150,7 +143,6 @@ def comp_view(request, compid):
 
     if compid%2:
         return render(request, "comp/comp_pred.html", context = context)
-
     else:
         return render(request, "comp/comp_simul.html", context = context)
 
@@ -182,7 +174,6 @@ def user(request):
     api_url = f"http://127.0.0.1:8000/api/user/get-user-prizes/{user_id}/"
     resp = requests.get(api_url)
     user_prizes = resp.json()['user_prizes']
-    print(f"user prizes {user_prizes}")
     
     context = {
         'is_organizer': is_organizer,
@@ -200,8 +191,8 @@ def login_view(request):
         user_data = fetch_user_auth_data_by_email(email)
 
         if user_data and check_password(senha_form, user_data[2]):
-            request.session['user_id'] = user_data[0]
-            request.session['user_name'] = user_data[1]
+            request.session['user_id'] = data[0]
+            request.session['user_name'] = data[1]
             
             messages.success(request, 'Login realizado com sucesso!')
             
@@ -328,29 +319,17 @@ def comp_submission(request, compid, equipeid):
             messages.error(request, 'Você precisa estar logado para enviar uma submissão.')
             return redirect('main:login') 
 
-        # form data
         payload = request.POST.copy()
-
-        # uploaded files
         files = request.FILES
 
         try:
             api_url = f"http://127.0.0.1:8000/api/comp/post-submission/{compid}/{equipeid}/"
-
-            print("CLIENT PAYLOAD:", payload)
-            print("CLIENT FILES:", files)
-
-            # THE IMPORTANT FIX:
             response = requests.post(
                 api_url,
                 data=payload,
                 files={'submission-input': files.get('submission-input')}
             )
 
-            print("API STATUS:", response.status_code)
-            print("API RAW RESPONSE:", response.text)
-
-            # This will only work if API returns JSON
             data = response.json()
 
             if response.status_code == 201:
@@ -365,3 +344,17 @@ def comp_submission(request, compid, equipeid):
 
     return redirect('main:comp')
 
+def comp_report_view(request, compid):
+    api_url = f"http://127.0.0.1:8000/api/comp/get-competition/{compid}"
+    response = requests.get(api_url)
+    
+    comp_title = "Relatório"
+    if response.ok and response.json().get('competition'):
+        comp_title = response.json()['competition'][0][2]
+
+    context = {
+        "user_name": request.session.get('user_name'),
+        "compid": compid,
+        "comp_title": comp_title
+    }
+    return render(request, "reports/comp_report.html", context)
