@@ -29,39 +29,35 @@
     <input type="text" class="search-bar" placeholder="Pesquisar competições...">
 
     <div class="filter-bar">
-        <button onclick="HideSimulShowPred()">Predição</button>
-        <button onclick="HidePredShowSimul()">Simulação</button>
-        <button onclick="ClearFilter()">Todas</button>
+        <button id="filter-pred">Predição</button>
+        <button id="filter-simul">Simulação</button>
+        <button id="filter-all">Todas</button>
     </div>
 
     <div class="card-grid">
         {% for comp in competitions %}
-            <a href="{% url 'main:comp-viewer' comp.0 %}" class="competition-card" id="{{ comp.0 }}">
+            <a href="{% url 'main:comp-viewer' comp.id %}" 
+               class="competition-card" 
+               data-title="{{ comp.titulo|lower }}" 
+               data-type="{{ comp.tipo|lower }}">
+                
                 <div class="card-image-placeholder"></div>
                 <div class="card-content">
-                    <h3 class="card-title">{{ comp.1 }}</h3>
-                    <p class="card-description">{{ comp.2 }}</p>
-                    <p class="card-teams">{{ comp.10 }} Equipes</p>
-                    <p class="card-meta">{{ comp.3 }}</p>
+                    <h3 class="card-title">{{ comp.titulo }}</h3>
+                    <p class="card-description">{{ comp.descricao }}</p>
+                    <p class="card-teams">{{ comp.total_equipes }} Equipes</p>
+                    <p class="card-meta">{{ comp.tipo }}</p>
                     
                     <div class="card-footer">
                         <span class="card-prize">
-                            {% if comp.7 == 1 %}
-                                R$ {{ comp.9|floatformat:2 }}
+                            {% if comp.flg_oficial == 1 %}
+                                R$ {{ comp.premiacao|floatformat:0 }}
                             {% else %}
                                 Não oficial
                             {% endif %}
                         </span>
                         <span>
-                            {% if comp.6 < now %}
-                                Encerrada
-                            {% elif comp.5 < now and comp.6 > now %}
-                                Encerra em {{ comp.6|timeuntil }}
-                            {% elif comp.5 > now %}
-                                Começa em {{ comp.5|timeuntil }}
-                            {% else %}
-                                Em breve
-                            {% endif %}
+                           {{ comp.status_string }}
                         </span>
                     </div>
                 </div>
@@ -69,6 +65,8 @@
         {% endfor %}
     </div>
 </div>
+{% endblock %}
 
-<script src="{% static 'js/comp_filter_home.js' %}"></script>
+{% block extra_js %}
+    <script src="{% static 'js/comp_filter_home.js' %}"></script>
 {% endblock %}
