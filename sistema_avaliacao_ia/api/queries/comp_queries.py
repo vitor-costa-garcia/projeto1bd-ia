@@ -249,7 +249,7 @@ def post_competition(request):
                      data_inicio, data_fim, metrica_desempenho, 
                      premiacao, flg_premiada, flg_deletada,
                      dataset_tt, dataset_submissao, dataset_gabarito) 
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s01, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id_competicao
                     """,
                     [
@@ -288,7 +288,7 @@ def post_competition(request):
                     (id_competicao, id_org_competicao, flg_oficial, titulo, descricao, dificuldade, 
                      data_inicio, data_fim, metrica_desempenho,
                      premiacao, flg_premiada, flg_deletada, ambiente)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s02, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id_competicao
                     """,
                     [
@@ -508,7 +508,15 @@ def verify_end_competition(request, compid):
                     [compid]
                 )
 
-                if cursor.fetchall()[0][0] and not cursor.fetchall()[0][1]:
+                data = cursor.fetchall()[0]
+
+                if not data[0]:
+                    return JsonResponse({"success": "Competição não acabou ainda."}, status=200)
+
+                if data[1]:
+                    return JsonResponse({"success": "Competição já distribuiu premiações."}, status=200)
+
+                if data[0] and not data[1]:
                     cursor.execute("""
                         SELECT 
                             e.id AS id_equipe
@@ -519,9 +527,10 @@ def verify_end_competition(request, compid):
                         WHERE 
                             s.id_competicao = %s
                         GROUP BY 
-                            e.id
+                            e.id,
+                            s.score
                         ORDER BY 
-                            best_score ASC
+                            s.score ASC
                         LIMIT 50;
                         """,
                         [compid]
@@ -536,7 +545,7 @@ def verify_end_competition(request, compid):
                         """,
                         [compid]
                     )
-                    premiacao_total = cursor.fetchall()[0][0]
+                    premiacao_total = cursor.fetchall()[0][0] or 0
                     counter = 1
                     tipo = 0
                     for team in top_50_teams:
@@ -564,8 +573,19 @@ def verify_end_competition(request, compid):
                             )
                             counter += 1
 
+                    cursor.execute(
+                        """
+                        UPDATE competicao_pred SET flg_premiada = TRUE WHERE id_competicao = %s
+                        """,
+                        [compid]
+                    )
+
+                    return JsonResponse({"success": "Premiações distribuídas com sucesso."}, status=200)
+
             case 0:
                 pass
+
+    return JsonResponse({"error": "Algo de errado aconteceu"}, status=500)
 
 
 def salvar_arquivo(file, id_competicao, tipo_pasta):
