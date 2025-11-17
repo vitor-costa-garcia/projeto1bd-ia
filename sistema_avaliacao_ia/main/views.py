@@ -6,6 +6,7 @@ from api.queries.user_queries import check_if_user_is_organizer, fetch_user_auth
 from api.queries.comp_queries import get_all_competitions, get_team_members
 from datetime import datetime
 from django.utils import timezone
+from django.utils.timesince import timesince
 import requests
 
 def index(request):
@@ -16,22 +17,54 @@ def index(request):
 
 def comp(request):
     resp = requests.get("http://127.0.0.1:8000/api/comp/get-all-competitions/")
-    competitions_data = resp.json()['competitions'] or []
+    competitions_data = resp.json().get('competitions', [])
 
     processed_competitions = []
-    for comp_list in competitions_data:
-        try:
-            comp_list[5] = datetime.fromisoformat(comp_list[5].replace(" ", "T"))
-        except (ValueError, TypeError, IndexError):
-            pass
-        try:
-            comp_list[6] = datetime.fromisoformat(comp_list[6].replace(" ", "T"))
-        except (ValueError, TypeError, IndexError):
-            pass
-        processed_competitions.append(comp_list)
-    
+    default_tz = timezone.get_default_timezone()
     now = timezone.now()
 
+    for comp in competitions_data:
+        comp_dict = {
+            'id': comp[0],
+            'titulo': comp[1],
+            'descricao': comp[2],
+            'tipo': comp[3],
+            'organizador': comp[4],
+            'flg_oficial': comp[7],
+            'dificuldade': comp[8],
+            'premiacao': comp[9],
+            'total_equipes': comp[10],
+            'data_inicio': None,
+            'data_fim': None,
+        }
+
+        try:
+            naive_start = datetime.fromisoformat(comp[5].replace(" ", "T"))
+            comp_dict['data_inicio'] = timezone.make_aware(naive_start, default_tz)
+        except (ValueError, TypeError, IndexError):
+            pass
+        try:
+            naive_end = datetime.fromisoformat(comp[6].replace(" ", "T"))
+            comp_dict['data_fim'] = timezone.make_aware(naive_end, default_tz)
+        except (ValueError, TypeError, IndexError):
+            pass
+
+        status_string = "Em breve"
+        start = comp_dict['data_inicio']
+        end = comp_dict['data_fim']
+
+        if end and end < now:
+            status_string = "Encerrada"
+        elif start and start < now and end and end > now:
+            time_str = timesince(now, end).split(",")[0]
+            status_string = f"Encerra em {time_str}"
+        elif start and start > now:
+            time_str = timesince(now, start).split(",")[0]
+            status_string = f"Começa em {time_str}"
+        
+        comp_dict['status_string'] = status_string
+        processed_competitions.append(comp_dict)
+    
     is_organizer = False
     user_id = request.session.get('user_id')
     user_name = request.session.get('user_name')
@@ -42,7 +75,6 @@ def comp(request):
     context = {
         "competitions" : processed_competitions,
         "is_organizer": is_organizer,
-        "now": now,
         "user_name": user_name
     }
     return render(request, "comp/comp.html", context)
@@ -113,12 +145,15 @@ def comp_view(request, compid):
     n_eq = compdata['n_teams'][0]
     n_ca = compdata['n_comp'][0]
     
+    default_tz = timezone.get_default_timezone()
     try:
-        data[7] = datetime.fromisoformat(data[7].replace(" ", "T"))
+        naive_start = datetime.fromisoformat(data[7].replace(" ", "T"))
+        data[7] = timezone.make_aware(naive_start, default_tz)
     except (ValueError, TypeError, IndexError):
         pass
     try:
-        data[8] = datetime.fromisoformat(data[8].replace(" ", "T"))
+        naive_end = datetime.fromisoformat(data[8].replace(" ", "T"))
+        data[8] = timezone.make_aware(naive_end, default_tz)
     except (ValueError, TypeError, IndexError):
         pass
         

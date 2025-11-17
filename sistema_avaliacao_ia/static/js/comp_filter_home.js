@@ -1,27 +1,50 @@
-const comp_cards = document.getElementsByClassName("competition-card")
+document.addEventListener('DOMContentLoaded', () => {
+    const searchBar = document.querySelector('.search-bar');
+    const allCards = document.querySelectorAll('.competition-card');
+    const filterPred = document.getElementById('filter-pred');
+    const filterSimul = document.getElementById('filter-simul');
+    const filterAll = document.getElementById('filter-all');
 
-function HidePredShowSimul(){
-    for(let i = 0; i < comp_cards.length; i++){
-        if(comp_cards[i].id%2==0){
-            comp_cards[i].style.display = '';
-        } else {
-            comp_cards[i].style.display = 'none';
-        }
-    }
-}
+    let currentFilter = 'todas';
 
-function HideSimulShowPred(){
-    for(let i = 0; i < comp_cards.length; i++){
-        if(comp_cards[i].id%2==1){
-            comp_cards[i].style.display = '';
-        } else {
-            comp_cards[i].style.display = 'none';
-        }
-    }
-}
+    function updateFilters() {
+        const searchQuery = searchBar.value.toLowerCase();
 
-function ClearFilter(){
-    for(let i = 0; i < comp_cards.length; i++){
-        comp_cards[i].style.display = '';
+        allCards.forEach(card => {
+            const title = card.dataset.title;
+            const type = card.dataset.type;
+
+            const searchMatch = title.includes(searchQuery);
+            let filterMatch = false;
+
+            if (currentFilter === 'todas') {
+                filterMatch = true;
+            } else if (currentFilter === type) {
+                filterMatch = true;
+            }
+
+            if (searchMatch && filterMatch) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
     }
-}
+
+    searchBar.addEventListener('keyup', updateFilters);
+    
+    filterPred.addEventListener('click', () => {
+        currentFilter = 'predição';
+        updateFilters();
+    });
+
+    filterSimul.addEventListener('click', () => {
+        currentFilter = 'simulação';
+        updateFilters();
+    });
+
+    filterAll.addEventListener('click', () => {
+        currentFilter = 'todas';
+        updateFilters();
+    });
+});
