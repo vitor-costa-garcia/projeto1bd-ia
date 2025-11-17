@@ -83,6 +83,8 @@ def comp_form(request):
     return render(request, "comp/comp_form.html", context)
 
 def comp_view(request, compid):
+    requests.get(f"http://127.0.0.1:8000/api/comp/verify-end-competition/{compid}/")
+
     user_id = request.session.get('user_id')
     equipe_id = None
     team_members = []

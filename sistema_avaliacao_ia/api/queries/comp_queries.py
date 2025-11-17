@@ -503,44 +503,78 @@ def verify_end_competition(request, compid):
     with connection.cursor() as cursor:
         match int(compid) % 2:
             case 1:  # competição de predição
-                cursor.execute("""
-                    SELECT 
-                        e.nome AS equipe_nome,
-                        MIN(s.score) AS best_score
-                    FROM 
-                        submissao_equipe_pred s
-                    JOIN 
-                        equipe_pred e ON e.id = s.id_equipe
-                    WHERE 
-                        s.id_competicao = %s
-                    GROUP BY 
-                        e.nome
-                    ORDER BY 
-                        best_score ASC
-                    LIMIT 20;""",
-                    [compid]
-                )
-
-            case 0:  # competição simulada
                 cursor.execute(
                     """
-                    SELECT 
-                        e.nome AS equipe_nome,
-                        MIN(s.score) AS best_score
-                    FROM 
-                        submissao_equipe_simul s
-                    JOIN 
-                        equipe_simul e ON e.id = s.id_equipe
-                    WHERE 
-                        s.id_competicao = %s
-                    GROUP BY 
-                        e.nome
-                    ORDER BY 
-                        best_score ASC
-                    LIMIT 20;
+                    SELECT
+                        data_fim <= NOW() AS has_ended,
+                        flg_premiada AS has_awarded
+                    FROM
+                        competicao_pred
+                    WHERE
+                        id_competicao = %s
                     """,
                     [compid]
                 )
+
+                if cursor.fetchall()[0][0] and not cursor.fetchall()[0][1]:
+                    # 50 best teams
+                    cursor.execute("""
+                        SELECT 
+                            e.id AS id_equipe
+                        FROM 
+                            submissao_equipe_pred s
+                        JOIN 
+                            equipe_pred e ON e.id = s.id_equipe
+                        WHERE 
+                            s.id_competicao = %s
+                        GROUP BY 
+                            e.id
+                        ORDER BY 
+                            best_score ASC
+                        LIMIT 50;
+                        """,
+                        [compid]
+                    )
+
+                    top_50_teams = cursor.fetchall()
+
+                    cursor.execute(
+                        """
+                        SELECT premiacao FROM competicao_pred
+                        WHERE id_competicao = %s
+                        """,
+                        [compid]
+                    )
+                    premiacao_total = cursor.fetchall()[0][0]
+                    counter = 1
+                    tipo = 0
+                    for team in top_50_teams:
+                        cursor.execute("""
+                            SELECT id_competidor FROM composicao_equipe_pred
+                            WHERE id_equipe = %s AND id_competicao = %s AND data_hora_fim IS NULL
+                            """,
+                            [team[0], compid]
+                        )
+
+                        top_50_team_members = cursor.fetchall()
+
+
+                        for competitor in top_50_team_members:
+                            if counter > 5:
+                                tipo = 1
+                            elif counter > 15:
+                                tipo = 2
+                            cursor.execute(
+                                """
+                                INSERT INTO premios_competidor_pred (id_competidor, id_competicao, data_recebimento, tipo, classificacao, valor)
+                                VALUES (%s, %s, NOW(), %s, %s, %s)
+                                """,
+                                [competitor[0], compid, tipo, counter, premiacao_total/(len(top_50_team_members))]
+                            )
+                            counter += 1
+
+            case 0:  # competição simulada
+                pass
 
 
 def salvar_arquivo(file, id_competicao, tipo_pasta):
