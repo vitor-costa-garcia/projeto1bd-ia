@@ -51,7 +51,7 @@
                     <div class="card-footer">
                         <span class="card-prize">
                             {% if comp.flg_oficial == 1 %}
-                                R$ {{ comp.premiacao|floatformat:2 }}
+                                R$ {{ comp.premiacao|floatformat:0 }}
                             {% else %}
                                 Não oficial
                             {% endif %}
