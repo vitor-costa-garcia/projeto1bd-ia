@@ -1,13 +1,13 @@
-const today = new Date();
-const yyyy = today.getFullYear();
-const mm = String(today.getMonth() + 1).padStart(2, '0');
-const dd = String(today.getDate()).padStart(2, '0');
-const minDate = `${yyyy}-${mm}-${dd}`;
-
 document.addEventListener('DOMContentLoaded', () => {
     
     const dataInicioInput = document.querySelector('input[name="data_inicio"]');
     const dataFimInput = document.querySelector('input[name="data_fim"]');
+    
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const minDate = `${yyyy}-${mm}-${dd}`;
     
     if (dataInicioInput) {
         dataInicioInput.setAttribute('min', minDate);
@@ -86,4 +86,26 @@ document.addEventListener('DOMContentLoaded', () => {
     HideBothForm();
     oficialFormDiv.style.display = 'none';
     oficialInputs.forEach(input => input.removeAttribute('required'));
+
+    const addRuleBtn = document.getElementById('add-rule-btn');
+    const removeRuleBtn = document.getElementById('remove-rule-btn');
+    const rulesContainer = document.getElementById('rules-container');
+    let ruleCounter = 0;
+
+    addRuleBtn.addEventListener('click', () => {
+        ruleCounter++;
+        const newRuleInput = document.createElement('div');
+        newRuleInput.className = 'form-group rule-item';
+        newRuleInput.innerHTML = `
+            <input type="text" name="regra${ruleCounter}" placeholder="Regra #${ruleCounter}" required>
+        `;
+        rulesContainer.appendChild(newRuleInput);
+    });
+
+    removeRuleBtn.addEventListener('click', () => {
+        if (rulesContainer.children.length > 0) {
+            rulesContainer.removeChild(rulesContainer.lastChild);
+            if (ruleCounter > 0) ruleCounter--;
+        }
+    });
 });

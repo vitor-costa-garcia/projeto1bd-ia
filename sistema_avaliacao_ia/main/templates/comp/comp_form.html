@@ -144,6 +144,16 @@
                     </div>
                 </fieldset>
             </div>
+
+            <fieldset>
+                <legend>Regras da Competição</legend>
+                <div id="rules-container">
+                </div>
+                <div class="rules-actions">
+                    <button type="button" id="add-rule-btn">Criar Nova Regra</button>
+                    <button type="button" id="remove-rule-btn" class="btn-danger">Deletar Última Regra</button>
+                </div>
+            </fieldset>
             
             <div class="form-actions">
                 <a href="{% url 'main:comp' %}" style="text-decoration: none;">
