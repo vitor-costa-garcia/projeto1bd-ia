@@ -9,6 +9,7 @@ urlpatterns = [
     path('get-submissions/<int:compid>/<int:equipeid>', get_submissions),
     path('verify-end-competition/<int:compid>', verify_end_competition),
     path('download-competition-file/<int:compid>/<int:type_file>/', download_competition_file),
+    path('verify-end-competition/<int:compid>/', verify_end_competition),
     path('create-team/', create_team),
     path('add-member-to-team/', add_member_to_team),
     path('remove-member-from-team/', remove_member_from_team),
