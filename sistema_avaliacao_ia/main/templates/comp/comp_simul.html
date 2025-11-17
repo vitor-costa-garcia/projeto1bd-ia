@@ -30,18 +30,6 @@
         <a href="{% url 'main:create-team' compid %}" style="text-decoration: none;" class="button-container">
             <button>Inscrever Equipe</button>
         </a>
-        {% else %}
-        <form 
-            action="{% url 'main:comp-submission' compid=compid equipeid=equipe_id %}"
-            method="POST"
-            enctype="multipart/form-data"
-            class="button-container"
-        >
-            {% csrf_token %}
-            <input type="hidden" name="comp_hidden" value="{{ compid }}">
-            <input type="file" accept=".py" name="submission-input" class="submission-form-file">
-            <button type="submit">Enviar Submissão</button>
-        </form>
         {% endif %}
         
         <a href="{% url 'main:comp-report' compid %}" style="text-decoration: none;" class="button-container">
@@ -92,6 +80,17 @@
                     {% endfor %}
                 </tbody>
             </table>
+            <form 
+                action="{% url 'main:comp-submission' compid=compid equipeid=equipe_id %}"
+                method="POST"
+                enctype="multipart/form-data"
+                class="button-container"
+            >
+                {% csrf_token %}
+                <input type="hidden" name="comp_hidden" value="{{ compid }}">
+                <input type="file" accept=".py" name="submission-input" class="submission-form-file">
+                <button type="submit">Enviar Submissão</button>
+            </form>
         </div>
         {% endif %}
 

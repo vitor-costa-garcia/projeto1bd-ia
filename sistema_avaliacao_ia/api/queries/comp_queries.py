@@ -494,7 +494,7 @@ def get_top20_ranking(request, compid):
 def verify_end_competition(request, compid):
     with connection.cursor() as cursor:
         match int(compid) % 2:
-            case 1:  # competição de predição
+            case 1:
                 cursor.execute(
                     """
                     SELECT
@@ -507,10 +507,8 @@ def verify_end_competition(request, compid):
                     """,
                     [compid]
                 )
-    return JsonResponse({})
 
                 if cursor.fetchall()[0][0] and not cursor.fetchall()[0][1]:
-                    # 50 best teams
                     cursor.execute("""
                         SELECT 
                             e.id AS id_equipe
@@ -566,7 +564,7 @@ def verify_end_competition(request, compid):
                             )
                             counter += 1
 
-            case 0:  # competição simulada
+            case 0:
                 pass
 
 
