@@ -83,8 +83,6 @@ def comp_form(request):
     return render(request, "comp/comp_form.html", context)
 
 def comp_view(request, compid):
-    requests.get(f"http://127.0.0.1:8000/api/comp/verify-end-competition/{compid}/")
-
     user_id = request.session.get('user_id')
     equipe_id = None
     team_members = []
@@ -183,14 +181,19 @@ def user(request):
 
     is_organizer = check_if_user_is_organizer(user_id)
 
-    api_url = f"http://127.0.0.1:8000/api/user/get-user-prizes/{user_id}/"
-    resp = requests.get(api_url)
-    user_prizes = resp.json()['user_prizes']
+    api_url_prizes = f"http://127.0.0.1:8000/api/user/get-user-prizes/{user_id}/"
+    resp_prizes = requests.get(api_url_prizes)
+    user_prizes = resp_prizes.json()['user_prizes']
+    
+    api_url_user = f"http://127.0.0.1:8000/api/user/get-user/{user_id}/"
+    resp_user = requests.get(api_url_user)
+    user_data = resp_user.json()['users'][0]
     
     context = {
         'is_organizer': is_organizer,
         "user_name": request.session.get('user_name'),
-        "user_prizes": user_prizes
+        "user_prizes": user_prizes,
+        "user_data": user_data
     }
     
     return render(request, "user/user.html", context)
