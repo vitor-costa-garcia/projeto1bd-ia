@@ -247,15 +247,15 @@ def post_competition(request):
                     INSERT INTO competicao_pred 
                     (id_competicao, id_org_competicao, flg_oficial, titulo, descricao, dificuldade, 
                      data_inicio, data_fim, metrica_desempenho, 
-                     premiacao,
+                     premiacao, flg_premiada, flg_deletada,
                      dataset_tt, dataset_submissao, dataset_gabarito) 
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id_competicao
                     """,
                     [
                         nextid, id_org, flg_oficial, data.get('titulo'), data.get('descricao'), data.get('dificuldade'),
                         data_inicio, data_fim, metrica,
-                        premiacao,
+                        premiacao, False, False,
                         'temp', 'temp', 'temp' 
                     ]
                 )
@@ -286,15 +286,15 @@ def post_competition(request):
                     """
                     INSERT INTO competicao_simul
                     (id_competicao, id_org_competicao, flg_oficial, titulo, descricao, dificuldade, 
-                     data_inicio, data_fim, metrica_desempenho, 
-                     premiacao, ambiente)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     data_inicio, data_fim, metrica_desempenho,
+                     premiacao, flg_premiada, flg_deletada, ambiente)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id_competicao
                     """,
                     [
                         nextid, id_org, flg_oficial, data.get('titulo'), data.get('descricao'), data.get('dificuldade'),
                         data_inicio, data_fim, metrica,
-                        premiacao,
+                        premiacao, False, False,
                         'temp' 
                     ]
                 )
