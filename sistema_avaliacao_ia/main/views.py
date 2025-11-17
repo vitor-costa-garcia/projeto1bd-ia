@@ -130,7 +130,11 @@ def comp_view(request, compid):
             api_url = f"http://127.0.0.1:8000/api/comp/get-submissions/{compid}/{equipe_id}"
             response = requests.get(api_url)
             submission_data = response.json().get('submissoes', [])
-    
+
+    api_url = f"http://127.0.0.1:8000/api/comp/get-regras/{compid}/"
+    response = requests.get(api_url)
+    regras_data = response.json()["regras"]
+
     api_url = f"http://127.0.0.1:8000/api/comp/get-ranking-comp/{compid}"
     response = requests.get(api_url)
     rank_data = response.json()
@@ -186,7 +190,8 @@ def comp_view(request, compid):
             "current_user_id": user_id,
             "submissoes": submission_data,
             "ranking_top20": ranking_data,
-            "is_competition_organizer": is_competition_organizer
+            "is_competition_organizer": is_competition_organizer,
+            "regras": regras_data
         }
 
     if compid%2:

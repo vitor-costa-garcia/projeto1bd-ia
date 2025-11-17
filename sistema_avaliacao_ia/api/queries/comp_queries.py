@@ -276,6 +276,16 @@ def post_competition(request):
 
                 get_nextseq_comp(type=0, add=True)
 
+                regras = [value for key, value in request.POST.items() if key.startswith('regra')]
+                for i, regra in enumerate(regras, start=1):
+                    cursor.execute(
+                        """
+                        INSERT INTO competicao_regras_pred (id_competicao, n_ordem, regra)
+                        VALUES (%s, %s, %s)
+                        """,
+                        [new_comp_id, i, regra]
+                    )
+
 
             elif tipo_comp == '1':
                 metrica = data.get('metrica_simulacao')
@@ -312,6 +322,16 @@ def post_competition(request):
                 )
 
                 get_nextseq_comp(type=1, add=True)
+
+                regras = [value for key, value in request.POST.items() if key.startswith('regra')]
+                for i, regra in enumerate(regras, start=1):
+                    cursor.execute(
+                        """
+                        INSERT INTO competicao_regras_simul (id_competicao, n_ordem, regra)
+                        VALUES (%s, %s, %s)
+                        """,
+                        [new_comp_id, i, regra]
+                    )
 
             else:
                 return JsonResponse({"error": "Tipo de competição inválido. Selecione 'Predição' ou 'Simulação'."}, status=400)
@@ -443,6 +463,41 @@ def get_submissions(request, compid, equipeid):
         result_sub = cursor.fetchall() or [0]
 
     return JsonResponse({"submissoes": result_sub})
+
+def get_regras_competition(request, compid):
+    with connection.cursor() as cursor:
+        match int(compid)%2:
+            case 1:
+                cursor.execute(
+                    """
+                    SELECT
+                        n_ordem, regra
+                    FROM
+                        competicao_regras_pred
+                    WHERE
+                        id_competicao = %s
+                    ORDER BY
+                        n_ordem
+                    """, [compid]
+                )
+
+            case 0:
+                cursor.execute(
+                    """
+                    SELECT
+                        n_ordem, regra
+                    FROM
+                        competicao_regras_simul
+                    WHERE
+                        id_competicao = %s
+                    ORDER BY
+                        n_ordem
+                    """, [compid]
+                )
+
+        result_rg = cursor.fetchall() or []
+
+    return JsonResponse({"regras": result_rg})
 
 def get_top20_ranking(request, compid):
     with connection.cursor() as cursor:

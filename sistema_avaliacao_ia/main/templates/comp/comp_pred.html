@@ -25,6 +25,21 @@
             <button onclick="window.location.href='/api/comp/download-competition-file/{{ compid }}/1/'">Baixar Dataset Submissão</button>
         </div>
 
+        <h2>Regras</h2>
+        <table class="regras-table">
+            <tbody>
+                {% for regras in regras %}
+                <tr>
+                    <td><strong>{{ regras.0 }}.</strong> {{ regras.1 }}</td>
+                </tr>
+                {% empty %}
+                <tr class="regra-table-empty">
+                    <td colspan="2">Nenhuma regra definida.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
         <h2>Top 20 – Ranking</h2>
         <table class="ranking-table">
             <thead>

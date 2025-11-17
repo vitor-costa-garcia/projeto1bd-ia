@@ -5,6 +5,7 @@ urlpatterns = [
     path('get-all-competitions/', get_all_competitions),
     path('post-competition/', post_competition),
     path('get-competition/<int:compid>/', get_competition),
+    path('get-regras/<int:compid>/', get_regras_competition),
     path('get-ranking-comp/<int:compid>/', get_top20_ranking),
     path('get-submissions/<int:compid>/<int:equipeid>', get_submissions),
     path('download-competition-file/<int:compid>/<int:type_file>/', download_competition_file),

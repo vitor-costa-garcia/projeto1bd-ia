@@ -23,6 +23,21 @@
         <div class="download-buttons">
             <button onclick="window.location.href='/api/comp/download-competition-file/{{ compid }}/0/'">Baixar Ambiente</button>
         </div>
+
+        <h2>Regras</h2>
+        <table class="regras-table">
+            <tbody>
+                {% for regras in regras %}
+                <tr>
+                    <td><strong>{{ regras.0 }}.</strong> {{ regras.1 }}</td>
+                </tr>
+                {% empty %}
+                <tr class="regra-table-empty">
+                    <td colspan="2">Nenhuma regra definida.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
     <div class="comp-sidebar">
