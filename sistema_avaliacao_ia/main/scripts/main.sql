@@ -12,13 +12,6 @@ CREATE TABLE usuario(
     CONSTRAINT "PK_ID_USUARIO" PRIMARY KEY (id)
 );
 
-CREATE TABLE usuario_tipo(
-    id_usuario INT NOT NULL,
-    tipo INT NOT NULL CHECK(tipo = 0 OR tipo = 1),
-    CONSTRAINT "PK_ID_USUARIO_TIPO" PRIMARY KEY (id_usuario, tipo),
-    CONSTRAINT "FK_ID_USUARIO_TIPO" FOREIGN KEY (id_usuario) REFERENCES usuario(id)
-);
-
 CREATE TABLE organizador(
     id_usuario INT NOT NULL,
     cpf VARCHAR(14) NOT NULL,
