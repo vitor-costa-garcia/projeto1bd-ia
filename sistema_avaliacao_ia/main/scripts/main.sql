@@ -50,7 +50,9 @@ CREATE TABLE competicao_pred(
     dataset_tt VARCHAR(200) NOT NULL,
     dataset_submissao VARCHAR(200) NOT NULL,
     dataset_gabarito VARCHAR(200) NOT NULL,
-    premiacao DECIMAL(10,2) CHECK(flg_oficial = 1 OR premiacao IS NULL),
+    premiacao DECIMAL(10,2) CHECK( (flg_oficial = 0 AND premiacao IS NULL) OR (flg_oficial = 1 AND premiacao > 0) ),
+    flg_deletada BOOLEAN NOT NULL DEFAULT false,
+    flg_premiada BOOLEAN NOT NULL DEFAULT false,
     CONSTRAINT "CHECK_DATAS_COMPETICAO_PRED" CHECK (data_fim >= data_inicio),
     CONSTRAINT "PK_COMPETICAO_PRED" PRIMARY KEY (id_competicao),
     CONSTRAINT "FK_COMPETICAO_PRED" FOREIGN KEY (id_org_competicao) REFERENCES usuario(id)
@@ -126,7 +128,9 @@ CREATE TABLE competicao_simul(
         'RECOMPENSA_MEDIA'
     )),
     ambiente VARCHAR(200) NOT NULL,
-    premiacao DECIMAL(10,2) CHECK(flg_oficial = 1 OR premiacao IS NULL),
+    premiacao DECIMAL(10,2) CHECK( (flg_oficial = 0 AND premiacao IS NULL) OR (flg_oficial = 1 AND premiacao > 0) ),
+    flg_deletada BOOLEAN NOT NULL DEFAULT false,
+    flg_premiada BOOLEAN NOT NULL DEFAULT false,
     CONSTRAINT "CHECK_DATAS_COMPETICAO_SIMUL" CHECK (data_fim >= data_inicio),
     CONSTRAINT "PK_COMPETICAO_SIMUL_OFC" PRIMARY KEY (id_competicao),
     CONSTRAINT "FK_COMPETICAO_SIMUL" FOREIGN KEY (id_org_competicao) REFERENCES usuario(id)

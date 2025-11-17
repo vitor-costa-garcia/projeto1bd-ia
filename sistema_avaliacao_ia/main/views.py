@@ -96,17 +96,21 @@ def comp_view(request, compid):
             team_members = get_team_members(compid, equipe_id)
             api_url = f"http://127.0.0.1:8000/api/comp/get-submissions/{compid}/{equipe_id}"
             response = requests.get(api_url)
-            submission_data = response.json()['submissoes']
+            submission_data = response.json().get('submissoes', [])
     
     api_url = f"http://127.0.0.1:8000/api/comp/get-ranking-comp/{compid}"
     response = requests.get(api_url)
     rank_data = response.json()
-    ranking_data = rank_data["ranking_top20"]
+    ranking_data = rank_data.get("ranking_top20", [])
 
     api_url = f"http://127.0.0.1:8000/api/comp/get-competition/{compid}"
     response = requests.get(api_url)
 
     compdata = response.json()
+    if not compdata.get('competition'):
+        messages.error(request, "Competição não encontrada ou foi deletada.")
+        return redirect('main:comp')
+        
     data = compdata['competition'][0]
     n_eq = compdata['n_teams'][0]
     n_ca = compdata['n_comp'][0]
@@ -119,6 +123,10 @@ def comp_view(request, compid):
         data[8] = datetime.fromisoformat(data[8].replace(" ", "T"))
     except (ValueError, TypeError, IndexError):
         pass
+        
+    is_competition_organizer = False
+    if user_id and data[11] == user_id:
+        is_competition_organizer = True
 
     context = {
             "compid": data[0],
@@ -132,6 +140,7 @@ def comp_view(request, compid):
             "data_fim": data[8],
             "metrica_desempenho": data[9],
             "premiacao": data[10],
+            "id_org_competicao": data[11],
             "n_equipes": n_eq[0],
             "n_comp": n_ca[0],
             "user_name": request.session.get('user_name'),
@@ -140,7 +149,8 @@ def comp_view(request, compid):
             "team_members": team_members,
             "current_user_id": user_id,
             "submissoes": submission_data,
-            "ranking_top20": ranking_data
+            "ranking_top20": ranking_data,
+            "is_competition_organizer": is_competition_organizer
         }
 
     if compid%2:
@@ -193,8 +203,8 @@ def login_view(request):
         user_data = fetch_user_auth_data_by_email(email)
 
         if user_data and check_password(senha_form, user_data[2]):
-            request.session['user_id'] = data[0]
-            request.session['user_name'] = data[1]
+            request.session['user_id'] = user_data[0]
+            request.session['user_name'] = user_data[1]
             
             messages.success(request, 'Login realizado com sucesso!')
             
@@ -360,3 +370,34 @@ def comp_report_view(request, compid):
         "comp_title": comp_title
     }
     return render(request, "reports/comp_report.html", context)
+
+def delete_competition_view(request, compid):
+    if request.method != 'POST':
+        return redirect('main:comp-viewer', compid=compid)
+
+    user_id = request.session.get('user_id')
+    if not user_id:
+        messages.error(request, 'Você precisa estar logado para deletar.')
+        return redirect('main:login')
+    
+    payload = {
+        'compid': compid,
+        'id_org': request.POST.get('id_org_competicao'),
+        'user_id': user_id
+    }
+    
+    try:
+        api_url = "http://127.0.0.1:8000/api/comp/delete-competition/"
+        response = requests.post(api_url, data=payload)
+        data = response.json()
+        
+        if response.status_code == 200:
+            messages.success(request, 'Competição deletada com sucesso.')
+            return redirect('main:comp')
+        else:
+            messages.error(request, data.get('error', 'Ocorreu um erro.'))
+            
+    except requests.exceptions.RequestException as e:
+        messages.error(request, f"Erro de conexão com a API: {e}")
+
+    return redirect('main:comp-viewer', compid=compid)

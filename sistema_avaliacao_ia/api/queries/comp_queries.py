@@ -23,11 +23,8 @@ def rmse_from_csv(file1, file2):
     arr1 = df1.to_numpy(dtype=float)
     arr2 = df2.to_numpy(dtype=float)
 
-    # RMSE = sqrt(mean((y1 - y2)^2))
     rmse = np.sqrt(np.mean((arr1 - arr2) ** 2))
     return rmse
-
-#########################################
 
 def get_all_competitions(request):
     with connection.cursor() as cursor:
@@ -54,6 +51,7 @@ def get_all_competitions(request):
                          FROM equipe_pred
                          GROUP BY id_competicao) AS EQ
                     ON A.id_competicao = EQ.id_competicao
+                    WHERE A.flg_deletada = false
 
                     UNION
 
@@ -78,6 +76,7 @@ def get_all_competitions(request):
                          FROM equipe_simul
                          GROUP BY id_competicao) AS EQ
                     ON A.id_competicao = EQ.id_competicao
+                    WHERE A.flg_deletada = false
                     """
                     )
 
@@ -100,7 +99,7 @@ def get_predict_competitions(request):
                     FROM
                         competicao_pred A, usuario B
                     WHERE
-                        A.id_org_competicao = B.id
+                        A.id_org_competicao = B.id AND A.flg_deletada = false
                     """
                     )
 
@@ -124,7 +123,7 @@ def get_simulation_competitions(request):
                     FROM
                         competicao_simul A, usuario B
                     WHERE
-                        A.id_org_competicao = B.id
+                        A.id_org_competicao = B.id AND A.flg_deletada = false
                     """
                     )
 
@@ -137,12 +136,10 @@ def post_submission(request, compid, equipeid):
         return JsonResponse({"error": "POST only endpoint"}, status=405)
 
     try:
-        # 1. Get uploaded file
         submission = request.FILES.get('submission-input')
         if not submission:
             return JsonResponse({"error": "Nenhum arquivo enviado"}, status=400)
 
-        # 2. Count submissions (fix SQL)
         with connection.cursor() as cursor:
             cursor.execute(
                 """
@@ -154,28 +151,21 @@ def post_submission(request, compid, equipeid):
             )
             nsub = cursor.fetchall()[0][0]
 
-        # 3. Save file
         fs = FileSystemStorage(location="./uploads/submissoes")
         filename = f"{compid}_{equipeid}_{nsub}.csv"
         fs.save(filename, submission)
 
-        # 4. Get gabarito path
         with connection.cursor() as cursor:
             cursor.execute(
                 "SELECT dataset_gabarito FROM competicao_pred WHERE id_competicao = %s",
                 [compid]
             )
-            dataset_gab = cursor.fetchall()[0][0]   # raw DB path
+            dataset_gab = cursor.fetchall()[0][0]
 
-        # Normalize to OS path:
         gabarito_path = os.path.join(settings.BASE_DIR, 'uploads', dataset_gab)
         submission_path = os.path.join(settings.BASE_DIR, 'uploads', 'submissoes', filename)
 
-        print("GAB:", gabarito_path)
-        print("SUB:", submission_path)
-
         error = rmse_from_csv(submission_path, gabarito_path)
-        print("RMSE:", error)
 
         with connection.cursor() as cursor:
             cursor.execute("""
@@ -259,7 +249,7 @@ def post_competition(request):
                      data_inicio, data_fim, metrica_desempenho, 
                      premiacao,
                      dataset_tt, dataset_submissao, dataset_gabarito) 
-                    VALUES (%s01, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id_competicao
                     """,
                     [
@@ -298,7 +288,7 @@ def post_competition(request):
                     (id_competicao, id_org_competicao, flg_oficial, titulo, descricao, dificuldade, 
                      data_inicio, data_fim, metrica_desempenho, 
                      premiacao, ambiente)
-                    VALUES (%s02, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id_competicao
                     """,
                     [
@@ -353,12 +343,13 @@ def get_competition(request, compid):
                         A.data_inicio,
                         A.data_fim,
                         A.metrica_desempenho,
-                        A.premiacao
+                        A.premiacao,
+                        A.id_org_competicao
                     FROM
                         competicao_pred A, usuario B
                     WHERE
                         A.id_competicao = %s AND
-                        B.id = A.id_org_competicao""", [compid])
+                        B.id = A.id_org_competicao AND A.flg_deletada = false""", [compid])
 
             case 0:
                 cursor.execute(
@@ -374,12 +365,13 @@ def get_competition(request, compid):
                         A.data_inicio,
                         A.data_fim,
                         A.metrica_desempenho,
-                        A.premiacao
+                        A.premiacao,
+                        A.id_org_competicao
                     FROM
                         competicao_simul A, usuario B
                     WHERE
                         A.id_competicao = %s AND
-                        B.id = A.id_org_competicao""", [compid])
+                        B.id = A.id_org_competicao AND A.flg_deletada = false""", [compid])
 
         result = cursor.fetchall()
 
@@ -455,7 +447,7 @@ def get_submissions(request, compid, equipeid):
 def get_top20_ranking(request, compid):
     with connection.cursor() as cursor:
         match int(compid) % 2:
-            case 1:  # competição de predição
+            case 1:
                 cursor.execute("""
                     SELECT 
                         e.nome AS equipe_nome,
@@ -474,7 +466,7 @@ def get_top20_ranking(request, compid):
                     [compid]
                 )
 
-            case 0:  # competição simulada
+            case 0:
                 cursor.execute(
                     """
                     SELECT 
@@ -515,6 +507,7 @@ def verify_end_competition(request, compid):
                     """,
                     [compid]
                 )
+    return JsonResponse({})
 
                 if cursor.fetchall()[0][0] and not cursor.fetchall()[0][1]:
                     # 50 best teams
@@ -781,6 +774,38 @@ def remove_member_from_team(request):
                 )
         
         return JsonResponse({"message": "Membro removido com sucesso."}, status=200)
+
+    except Exception as e:
+        return JsonResponse({"error": f"Um erro inesperado ocorreu: {e}"}, status=500)
+
+@transaction.atomic
+@csrf_exempt
+def delete_competition(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only endpoint"}, status=405)
+    
+    try:
+        data = request.POST
+        compid = int(data.get('compid'))
+        id_org = int(data.get('id_org'))
+        user_id = int(data.get('user_id'))
+
+        if id_org != user_id:
+            return JsonResponse({"error": "Usuário não autorizado."}, status=403)
+            
+        with connection.cursor() as cursor:
+            if compid % 2:
+                cursor.execute(
+                    "UPDATE competicao_pred SET flg_deletada = true WHERE id_competicao = %s AND id_org_competicao = %s",
+                    [compid, id_org]
+                )
+            else:
+                cursor.execute(
+                    "UPDATE competicao_simul SET flg_deletada = true WHERE id_competicao = %s AND id_org_competicao = %s",
+                    [compid, id_org]
+                )
+        
+        return JsonResponse({"message": "Competição deletada com sucesso."}, status=200)
 
     except Exception as e:
         return JsonResponse({"error": f"Um erro inesperado ocorreu: {e}"}, status=500)
