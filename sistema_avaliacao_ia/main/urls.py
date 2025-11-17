@@ -18,6 +18,7 @@ urlpatterns = [
     path("competicoes/<int:compid>/", views.comp_view, name="comp-viewer"),
     path("competicoes/<int:compid>/register-team/", views.create_team_view, name="create-team"),
     path("competicoes/<int:compid>/reports/", views.comp_report_view, name="comp-report"),
+    path("competicoes/<int:compid>/delete/", views.delete_competition_view, name="delete-competition"),
     
     path("ranking/", views.ranking, name="ranking"),
     path("reports/", views.reports, name="reports"),

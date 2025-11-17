@@ -54,8 +54,20 @@
         <a href="{% url 'main:create-team' compid %}" style="text-decoration: none;" class="button-container">
             <button>Inscrever Equipe</button>
         </a>
+        {% else %}
+        <form 
+            action="{% url 'main:comp-submission' compid=compid equipeid=equipe_id %}"
+            method="POST"
+            enctype="multipart/form-data"
+            class="button-container"
+        >
+            {% csrf_token %}
+            <input type="hidden" name="comp_hidden" value="{{ compid }}">
+            <input type="file" accept=".csv" name="submission-input" class="submission-form-file">
+            <button type="submit">Enviar Submissão</button>
+        </form>
         {% endif %}
-
+        
         <a href="{% url 'main:comp-report' compid %}" style="text-decoration: none;" class="button-container">
             <button type="button" class="btn-secondary" style="width:100%;">Gerar Relatório</button>
         </a>
@@ -104,17 +116,6 @@
                     {% endfor %}
                 </tbody>
             </table>
-
-            <form 
-                action="{% url 'main:comp-submission' compid=compid equipeid=equipe_id %}"
-                method="POST"
-                enctype="multipart/form-data"
-            >
-                {% csrf_token %}
-                <input type="hidden" name="comp_hidden" value="{{ compid }}">
-                <input type="file" accept=".csv" name="submission-input" class="submission-form-file">
-                <button class="submission-form-button" type="submit">Enviar Submissão</button>
-            </form>
         </div>
         {% endif %}
 
@@ -148,6 +149,16 @@
                 <li><strong>Fim:</strong> {{ data_fim|date:"d M Y" }}</li>
             </ul>
         </div>
+
+        {% if is_competition_organizer %}
+        <div class="button-container" style="margin-top: 1rem;">
+            <form method="post" action="{% url 'main:delete-competition' compid %}" onsubmit="return confirm('Tem certeza que deseja deletar esta competição? Esta ação não pode ser desfeita.');">
+                {% csrf_token %}
+                <input type="hidden" name="id_org_competicao" value="{{ id_org_competicao }}">
+                <button type="submit" class="btn-danger" style="width:100%;">Deletar Competição</button>
+            </form>
+        </div>
+        {% endif %}
     </div>
 
 </div>

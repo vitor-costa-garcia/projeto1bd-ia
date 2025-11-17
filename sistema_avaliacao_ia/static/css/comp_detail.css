@@ -251,3 +251,11 @@
 .submission-form-button {
     margin-top: 20px;
 }
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
+.btn-danger:hover {
+    background-color: #c82333;
+}

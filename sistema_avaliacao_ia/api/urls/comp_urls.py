@@ -13,4 +13,5 @@ urlpatterns = [
     path('add-member-to-team/', add_member_to_team),
     path('remove-member-from-team/', remove_member_from_team),
     path('post-submission/<int:compid>/<int:equipeid>/', post_submission),
+    path('delete-competition/', delete_competition),
 ]
