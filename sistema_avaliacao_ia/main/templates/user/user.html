@@ -5,13 +5,14 @@
 
 {% block extra_head %}
     <link rel="stylesheet" href="{% static 'css/dialog.css' %}">
+    <link rel="stylesheet" href="{% static 'css/user_profile.css' %}">
 {% endblock %}
 
 {% block content %}
     <h1>Perfil do Usuário</h1>
     
     {% if messages %}
-        <ul class="messages">
+        <ul class"messages">
             {% for message in messages %}
                 <li style="color: {% if message.tags == 'success' %}green{% else %}red{% endif %};">
                     {{ message }}
@@ -21,34 +22,62 @@
         <hr>
     {% endif %}
 
-    <p>Medalhas:</p>
-    <p>Ouro: {{ user_prizes.0.1 }} Prata: {{ user_prizes.1.1 }} Bronze {{ user_prizes.2.1 }}</p>
-    <p>Premiações em dinheiro: {{ user_prizes.3.1 }}</p>
-    <button>Histórico competições</button>
-    <button>Editar</button>
+    <div class="profile-grid">
+        <div class="profile-card profile-info">
+            <h2>Informações Pessoais</h2>
+            <p><strong>Nome:</strong> {{ user_data.1 }}</p>
+            <p><strong>Email:</strong> {{ user_data.2 }}</p>
+            <p><strong>Nascimento:</strong> {{ user_data.4|date:"d M Y" }}</p>
+            
+            <p><strong>País:</strong> {{ user_data.9 }}</p>
+            <p><strong>Estado:</strong> {{ user_data.8 }}</p>
+            <p><strong>Cidade:</strong> {{ user_data.7 }}</p>
+            <p><strong>Rua:</strong> {{ user_data.6 }}</p>
+            <p><strong>Número:</strong> {{ user_data.5 }}</p>
+        </div>
 
-    <hr>
+        <div class="profile-card">
+            <h2>Conquistas</h2>
+            <div class="profile-info">
+                <p><strong>Ouro:</strong> {{ user_prizes.0.1 }}</p>
+                <p><strong>Prata:</strong> {{ user_prizes.1.1 }}</p>
+                <p><strong>Bronze:</strong> {{ user_prizes.2.1 }}</p>
+                <p><strong>Prêmios em Dinheiro:</strong> {{ user_prizes.3.1 }}</p>
+            </div>
+            
+            <div class="profile-actions">
+                <button>Histórico</button>
+                <button>Editar</button>
+            </div>
+        </div>
+    </div>
     
-    {% if is_organizer %}
-        <p><strong>Status:</strong> Você já é um Organizador.</p>
-    {% else %}
-        <button type="button" id="show-dialog-btn">Tornar-se um Organizador</button>
+    <div class="profile-card" style="margin-top: 2rem;">
+        <h2>Status de Organizador</h2>
+        {% if is_organizer %}
+            <p class="profile-status"><strong>Status:</strong> Você já é um Organizador.</p>
+        {% else %}
+            <p class="profile-status">Torne-se um organizador para criar suas próprias competições.</p>
+            <div class="profile-actions">
+                <button type="button" id="show-dialog-btn">Tornar-se um Organizador</button>
+            </div>
+        {% endif %}
+    </div>
 
-        <dialog id="organizer-dialog">
-            <h2>Registrar como Organizador</h2>
-            <form method="post" action="{% url 'main:become-organizer' %}" class="dialog-form-container">
-                {% csrf_token %}
-                <label>
-                    CPF:
-                    <input type="text" name="cpf" required placeholder="000.000.000-00" maxlength="14">
-                </label>
-                <div class="dialog-actions">
-                    <button type="button" id="close-dialog-btn" class="btn-secondary">Cancelar</button>
-                    <button type="submit">Registrar</button>
-                </div>
-            </form>
-        </dialog>
-    {% endif %}
+    <dialog id="organizer-dialog">
+        <h2>Registrar como Organizador</h2>
+        <form method="post" action="{% url 'main:become-organizer' %}" class="dialog-form-container">
+            {% csrf_token %}
+            <label>
+                CPF:
+                <input type="text" name="cpf" required placeholder="000.000.000-00" maxlength="14">
+            </label>
+            <div class="dialog-actions">
+                <button type="button" id="close-dialog-btn" class="btn-secondary">Cancelar</button>
+                <button type="submit">Registrar</button>
+            </div>
+        </form>
+    </dialog>
 {% endblock %}
 
 {% block extra_js %}
