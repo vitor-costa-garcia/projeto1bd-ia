@@ -8,6 +8,7 @@ from datetime import datetime
 from django.utils import timezone
 from django.utils.timesince import timesince
 import requests
+import json
 
 def index(request):
     if request.session.get('user_id'):
@@ -392,7 +393,7 @@ def comp_submission(request, compid, equipeid):
 
             if response.status_code == 201:
                 messages.success(request, 'Submissão criada com sucesso!')
-                return redirect('main:comp')
+                return redirect('main:comp-viewer', compid=compid)
             else:
                 error = data.get("error", "Erro desconhecido")
                 messages.error(request, error)
@@ -400,7 +401,7 @@ def comp_submission(request, compid, equipeid):
         except Exception as e:
             messages.error(request, f"Erro de conexão com a API: {e}")
 
-    return redirect('main:comp')
+    return redirect('main:comp-viewer', compid=compid)
 
 def comp_report_view(request, compid):
     api_url = f"http://127.0.0.1:8000/api/comp/get-competition/{compid}"
@@ -447,3 +448,40 @@ def delete_competition_view(request, compid):
         messages.error(request, f"Erro de conexão com a API: {e}")
 
     return redirect('main:comp-viewer', compid=compid)
+
+def user_history_view(request):
+    user_id = request.session.get('user_id')
+    if not user_id:
+        return redirect('main:login')
+
+    context = {
+        "user_name": request.session.get('user_name'),
+    }
+    return render(request, "user/user_history.html", context)
+
+def comp_report_view(request, compid):
+    api_url_info = f"http://127.0.0.1:8000/api/comp/get-competition/{compid}"
+    resp_info = requests.get(api_url_info)
+    comp_data = resp_info.json().get('competition', [])
+    
+    comp_title = "Competição"
+    comp_metric = "Score"
+    
+    if comp_data:
+        comp_title = comp_data[0][2]
+        comp_metric = comp_data[0][9]
+
+    api_url_stats = f"http://127.0.0.1:8000/api/comp/get-comp-stats/{compid}/"
+    resp_stats = requests.get(api_url_stats)
+    stats_data = resp_stats.json().get('stats', {})
+
+    context = {
+        "user_name": request.session.get('user_name'),
+        "compid": compid,
+        "comp_title": comp_title,
+        "comp_metric": comp_metric,
+        "stats": stats_data,
+        # Serializa para JSON para o Chart.js usar
+        "stats_json": json.dumps(stats_data) 
+    }
+    return render(request, "reports/comp_report.html", context)

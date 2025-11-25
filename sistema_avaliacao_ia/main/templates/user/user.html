@@ -12,7 +12,7 @@
     <h1>Perfil do Usuário</h1>
     
     {% if messages %}
-        <ul class"messages">
+        <ul class="messages">
             {% for message in messages %}
                 <li style="color: {% if message.tags == 'success' %}green{% else %}red{% endif %};">
                     {{ message }}
@@ -37,7 +37,13 @@
         </div>
 
         <div class="profile-card">
-            <h2>Conquistas</h2>
+            <div class="card-header-flex">
+                <h2>Conquistas</h2>
+                <a href="{% url 'main:user-history' %}">
+                    <button class="btn-small">Histórico</button>
+                </a>
+            </div>
+
             <div class="profile-info">
                 <p><strong>Ouro:</strong> {{ user_prizes.0.1 }}</p>
                 <p><strong>Prata:</strong> {{ user_prizes.1.1 }}</p>
@@ -45,11 +51,7 @@
                 <p><strong>Prêmios em Dinheiro:</strong> {{ user_prizes.3.1 }}</p>
             </div>
             
-            <div class="profile-actions">
-                <button>Histórico</button>
-                <button>Editar</button>
             </div>
-        </div>
     </div>
     
     <div class="profile-card" style="margin-top: 2rem;">

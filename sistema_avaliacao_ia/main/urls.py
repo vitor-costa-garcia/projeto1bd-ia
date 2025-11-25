@@ -11,6 +11,7 @@ urlpatterns = [
 
     path("user/", views.user, name="user-profile"),
     path("become-organizer/", views.become_organizer, name="become-organizer"),
+    path("user/history/", views.user_history_view, name="user-history"),
 
     path("competicoes/", views.comp, name="comp"),
     path("competicoes/new/", views.comp_form, name="comp-form"),

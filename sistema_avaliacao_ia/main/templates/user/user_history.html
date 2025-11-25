@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Histórico - Predicto{% endblock %}
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'css/comp_tables.css' %}">
+{% endblock %}
+
+{% block content %}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1>Histórico de Participação</h1>
+        <a href="{% url 'main:user-profile' %}">
+            <button class="btn-secondary">Voltar ao Perfil</button>
+        </a>
+    </div>
+
+    <div class="form-container" style="max-width: 100%;">
+        <table class="comp-table">
+            <thead>
+                <tr>
+                    <th>Competição</th>
+                    <th>Tipo</th>
+                    <th>Data Início</th>
+                    <th>Data Fim</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="comp-table-empty">
+                    <td colspan="5">Histórico será carregado aqui.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

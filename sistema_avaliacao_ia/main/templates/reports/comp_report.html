@@ -4,15 +4,227 @@
 {% block title %}Relatório: {{ comp_title }}{% endblock %}
 
 {% block extra_head %}
+    <link rel="stylesheet" href="{% static 'css/comp_detail.css' %}">
+    <!-- Carrega Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        /* Estilos específicos para o relatório */
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 1rem;
+        }
+        .report-header h1 {
+            font-size: 1.8rem;
+            margin: 0;
+            color: #212529;
+        }
+        .report-subtitle {
+            color: #6c757d;
+            font-size: 1rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Grid de Cards de Resumo (KPIs) */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .kpi-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #007bff;
+            margin-bottom: 0.5rem;
+        }
+        .kpi-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Grid dos Gráficos */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* Dois gráficos lado a lado */
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        .chart-container {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            min-height: 300px;
+        }
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #333;
+            text-align: center;
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr; /* Um em cima do outro no mobile */
+            }
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
-    <h1>Relatório da Competição</h1>
-    <h2>{{ comp_title }} (ID: {{ compid }})</h2>
+<div style="max-width: 1200px; margin: 0 auto;">
+    
+    <div class="report-header">
+        <div>
+            <h1>Relatório de Desempenho</h1>
+            <div class="report-subtitle">{{ comp_title }} (Métrica: {{ comp_metric }})</div>
+        </div>
+        <a href="{% url 'main:comp-viewer' compid %}">
+            <button type="button">Voltar para Competição</button>
+        </a>
+    </div>
 
-    <p>Esta página conterá as estatísticas e gráficos para esta competição.</p>
+    <!-- 1. Cartões de Resumo (KPIs) -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-value">{{ stats.total_submissions }}</div>
+            <div class="kpi-label">Total de Submissões</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-value">{{ stats.team_scores|length }}</div>
+            <div class="kpi-label">Equipes Participantes</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-value">{{ stats.best_score }}</div>
+            <div class="kpi-label">Melhor Score</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-value">{{ stats.avg_score }}</div>
+            <div class="kpi-label">Score Médio</div>
+        </div>
+    </div>
 
-    <a href="{% url 'main:comp-viewer' compid %}">
-        <button type"button" class="btn-secondary">Voltar para Competição</button>
-    </a>
+    <!-- 2. Gráficos -->
+    <div class="charts-grid">
+        
+        <!-- Gráfico 1: Evolução Temporal -->
+        <div class="chart-container">
+            <div class="chart-title">Submissões por Dia</div>
+            <canvas id="submissionsChart"></canvas>
+        </div>
+
+        <!-- Gráfico 2: Distribuição de Scores -->
+        <div class="chart-container">
+            <div class="chart-title">Distribuição de Desempenho das Equipes</div>
+            <canvas id="scoresChart"></canvas>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Script para Gerar os Gráficos -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Recebe os dados do Django
+        const stats = JSON.parse('{{ stats_json|escapejs }}');
+        
+        // --- Gráfico 1: Linha (Timeline) ---
+        const ctxSub = document.getElementById('submissionsChart').getContext('2d');
+        new Chart(ctxSub, {
+            type: 'line',
+            data: {
+                labels: stats.daily_submissions_dates, // Eixo X: Datas
+                datasets: [{
+                    label: 'Quantidade de Envios',
+                    data: stats.daily_submissions_counts, // Eixo Y: Quantidade
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3 // Curva suave
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+
+        // --- Gráfico 2: Barras (Distribuição de Scores) ---
+        // Lógica simples para criar "buckets" (faixas de score)
+        const scores = stats.team_scores;
+        const labels = [];
+        const data = [];
+        
+        if (scores.length > 0) {
+            // Ordena para visualizar melhor
+            scores.sort((a, b) => a - b);
+            // Cria labels simples (Equipe 1, Equipe 2...) ou pode ser buckets
+            // Aqui vamos mostrar o Top 10 scores para ficar limpo
+            const topScores = scores.slice(0, 10); 
+            
+            labels.push(...topScores.map((_, i) => `Rank #${i+1}`));
+            data.push(...topScores);
+        }
+
+        const ctxScore = document.getElementById('scoresChart').getContext('2d');
+        new Chart(ctxScore, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Score Final',
+                    data: data,
+                    backgroundColor: [
+                        '#28a745', // 1º Verde (Campeão)
+                        '#20c997', 
+                        '#17a2b8',
+                        '#007bff',
+                        '#6610f2',
+                        '#6f42c1',
+                        '#e83e8c',
+                        '#dc3545',
+                        '#fd7e14',
+                        '#ffc107'
+                    ],
+                    borderWidth: 0,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: false } // Começa perto do menor score para destacar diferenças
+                }
+            }
+        });
+    });
+</script>
 {% endblock %}
