@@ -1,11 +1,17 @@
+/* MUDANÇA PRINCIPAL AQUI */
 .comp-detail-layout {
     display: grid;
-    grid-template-columns: 1fr 320px;
-    gap: 2rem;
+    grid-template-columns: 1fr 350px; /* Aumentei um pouco a sidebar */
+    gap: 4rem; /* Aumentei o espaço entre o conteúdo e a sidebar */
+    max-width: 1600px; /* Permite que o layout fique bem largo */
+    width: 95%; /* Ocupa 95% da tela disponível */
+    margin: 2rem auto; /* Centraliza o bloco todo na tela */
 }
 
 .comp-main-content {
     text-align: left;
+    /* Opcional: Se quiser limitar a largura do texto para leitura */
+    /* max-width: 900px; */ 
 }
 
 .comp-main-content h1 {
@@ -38,6 +44,14 @@
     line-height: 1.6;
     color: #333;
     text-align: left;
+}
+
+/* Sidebar flutuante */
+.comp-sidebar {
+    /* Se quiser que a sidebar desça junto com o scroll, descomente abaixo */
+    /* position: sticky; */
+    /* top: 80px; */
+    /* height: fit-content; */
 }
 
 .comp-sidebar .sidebar-pod {

@@ -5,19 +5,25 @@ body {
     margin: 0;
 }
 
+/* MUDANÇA PRINCIPAL AQUI */
 .page-container {
-    max-width: 1300px;
+    max-width: 1600px; /* Aumentado para ocupar mais espaço em telas grandes */
+    width: 95%; /* Garante que ocupe quase toda a largura disponível */
     margin: 0 auto;
-    padding: 2rem;
+    padding: 2rem 0; /* Removi padding lateral pois o width já controla */
 }
 
 .page-header {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: center; /* Alterado de baseline para center para melhor alinhamento do botão */
     border-bottom: 1px solid #dee2e6;
     padding-bottom: 1.5rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.page-header h1 {
+    margin: 0;
 }
 
 .filter-bar {
@@ -26,24 +32,9 @@ body {
     margin-bottom: 2rem;
 }
 
-.search-bar {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    margin-bottom: 1.5rem;
-    box-sizing: border-box;
-}
-.search-bar:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0,123,255,0.2);
-}
-
 .card-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Responsivo */
     gap: 1.5rem;
 }
 
@@ -154,4 +145,19 @@ body {
     background-color: #f8d7da;
     color: #721c24;
     border: 1px solid #f5c6cb;
+}
+
+.search-bar {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+    box-sizing: border-box;
+}
+.search-bar:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0,123,255,0.2);
 }
