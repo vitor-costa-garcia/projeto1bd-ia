@@ -188,4 +188,69 @@ def get_user_prizes(request, userid):
 
     return JsonResponse({"user_prizes": result})
 
+def get_user_stats(request, userid):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT COUNT(*) FROM (
+                SELECT id_competicao FROM composicao_equipe_pred WHERE id_competidor = %s
+                UNION
+                SELECT id_competicao FROM composicao_equipe_simul WHERE id_competidor = %s
+            ) as total
+            """, [userid, userid]
+        )
+        total_comps = cursor.fetchone()[0]
 
+        cursor.execute(
+            """
+            SELECT COUNT(*) FROM (
+                SELECT s.id_equipe FROM submissao_equipe_pred s
+                JOIN composicao_equipe_pred c ON s.id_equipe = c.id_equipe
+                WHERE c.id_competidor = %s
+                UNION ALL
+                SELECT s.id_equipe FROM submissao_equipe_simul s
+                JOIN composicao_equipe_simul c ON s.id_equipe = c.id_equipe
+                WHERE c.id_competidor = %s
+            ) as total
+            """, [userid, userid]
+        )
+        total_subs = cursor.fetchone()[0]
+
+        cursor.execute(
+            """
+            SELECT TO_CHAR(data_envio, 'YYYY-MM-DD') as dia, COUNT(*) as qtd
+            FROM (
+                SELECT data_hora_envio as data_envio FROM submissao_equipe_pred s
+                JOIN composicao_equipe_pred c ON s.id_equipe = c.id_equipe
+                WHERE c.id_competidor = %s
+                UNION ALL
+                SELECT data_hora_envio as data_envio FROM submissao_equipe_simul s
+                JOIN composicao_equipe_simul c ON s.id_equipe = c.id_equipe
+                WHERE c.id_competidor = %s
+            ) as envios
+            GROUP BY dia
+            ORDER BY dia ASC
+            LIMIT 30
+            """, [userid, userid]
+        )
+        daily_activity = cursor.fetchall()
+
+        cursor.execute(
+            """
+            SELECT 'Predição', COUNT(*) FROM composicao_equipe_pred WHERE id_competidor = %s
+            UNION ALL
+            SELECT 'Simulação', COUNT(*) FROM composicao_equipe_simul WHERE id_competidor = %s
+            """, [userid, userid]
+        )
+        comp_types = cursor.fetchall()
+
+    return JsonResponse({
+        "stats": {
+            "total_competitions": total_comps,
+            "total_submissions": total_subs,
+            "activity_dates": [row[0] for row in daily_activity],
+            "activity_counts": [row[1] for row in daily_activity],
+            "type_labels": [row[0] for row in comp_types],
+            "type_counts": [row[1] for row in comp_types]
+        }
+    })

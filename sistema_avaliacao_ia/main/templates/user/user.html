@@ -9,7 +9,13 @@
 {% endblock %}
 
 {% block content %}
-    <h1>Perfil do Usuário</h1>
+    <!-- NOVO CABEÇALHO FLEXÍVEL -->
+    <div class="profile-header-container">
+        <h1>Perfil do Usuário</h1>
+        <a href="{% url 'main:user-report' %}">
+            <button class="btn-report">Gerar Relatório</button>
+        </a>
+    </div>
     
     {% if messages %}
         <ul class="messages">
@@ -50,8 +56,7 @@
                 <p><strong>Bronze:</strong> {{ user_prizes.2.1 }}</p>
                 <p><strong>Prêmios em Dinheiro:</strong> {{ user_prizes.3.1 }}</p>
             </div>
-            
-            </div>
+        </div>
     </div>
     
     <div class="profile-card" style="margin-top: 2rem;">

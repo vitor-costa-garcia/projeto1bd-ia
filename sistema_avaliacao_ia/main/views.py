@@ -485,3 +485,30 @@ def comp_report_view(request, compid):
         "stats_json": json.dumps(stats_data) 
     }
     return render(request, "reports/comp_report.html", context)
+
+def user_report_view(request):
+    user_id = request.session.get('user_id')
+    if not user_id:
+        return redirect('main:login')
+
+    api_url_user = f"http://127.0.0.1:8000/api/user/get-user/{user_id}/"
+    resp_user = requests.get(api_url_user)
+    user_data = resp_user.json().get('users', [[]])[0]
+
+    api_url_prizes = f"http://127.0.0.1:8000/api/user/get-user-prizes/{user_id}/"
+    resp_prizes = requests.get(api_url_prizes)
+    user_prizes = resp_prizes.json().get('user_prizes', [])
+
+    api_url_stats = f"http://127.0.0.1:8000/api/user/get-user-stats/{user_id}/"
+    resp_stats = requests.get(api_url_stats)
+    stats_data = resp_stats.json().get('stats', {})
+
+    context = {
+        "user_name": request.session.get('user_name'),
+        "user_data": user_data,
+        "user_prizes": user_prizes,
+        "stats": stats_data,
+        "stats_json": json.dumps(stats_data),
+        "prizes_json": json.dumps([p[1] for p in user_prizes] if user_prizes else [0,0,0,0]) 
+    }
+    return render(request, "user/user_report.html", context)
