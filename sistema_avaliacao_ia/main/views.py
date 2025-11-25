@@ -512,3 +512,17 @@ def user_report_view(request):
         "prizes_json": json.dumps([p[1] for p in user_prizes] if user_prizes else [0,0,0,0]) 
     }
     return render(request, "user/user_report.html", context)
+
+def ranking(request):
+    sort_by = request.GET.get('sort', 'gold')
+    
+    api_url = f"http://127.0.0.1:8000/api/user/get-global-ranking/?sort={sort_by}"
+    resp = requests.get(api_url)
+    ranking_data = resp.json().get('ranking', [])
+
+    context = {
+        "rankinglist": ranking_data,
+        "user_name": request.session.get('user_name'),
+        "current_sort": sort_by
+    }
+    return render(request, "ranking/ranking.html", context)

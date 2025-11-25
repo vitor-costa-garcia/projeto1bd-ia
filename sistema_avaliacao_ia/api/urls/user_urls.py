@@ -1,7 +1,7 @@
 from django.urls import path
 from api.queries.user_queries import (
     get_all_user, get_user, create_user, create_organizer, 
-    search_users, get_user_prizes, get_user_stats
+    search_users, get_user_prizes, get_user_stats, get_global_ranking
 )
 
 urlpatterns = [
@@ -12,4 +12,5 @@ urlpatterns = [
     path('search-users/', search_users),
     path('get-user-prizes/<int:userid>/', get_user_prizes),
     path('get-user-stats/<int:userid>/', get_user_stats),
+    path('get-global-ranking/', get_global_ranking),
 ]

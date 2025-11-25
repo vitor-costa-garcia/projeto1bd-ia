@@ -8,31 +8,58 @@
 {% endblock %}
 
 {% block content %}
-    <h1>Ranking</h1>
+    <h1>Ranking Global</h1>
     
     <div class="filter-bar">
-        <button>Global</button>
-        <button>Medalhas</button>
-        <button>Classificação</button>
-        <button>Competições predição</button>
-        <button>Competições simulação</button>
+        <a href="?sort=gold" class="btn-filter {% if current_sort == 'gold' %}active{% endif %}">
+            Por Medalhas (Padrão)
+        </a>
+        <a href="?sort=money" class="btn-filter {% if current_sort == 'money' %}active{% endif %}">
+            Por Dinheiro
+        </a>
+        <a href="?sort=comps" class="btn-filter {% if current_sort == 'comps' %}active{% endif %}">
+            Mais Ativos
+        </a>
+        <a href="?sort=name" class="btn-filter {% if current_sort == 'name' %}active{% endif %}">
+            Nome (A-Z)
+        </a>
     </div>
 
     <table>
-        <caption>Ranking global de pontos</caption>
         <thead>
             <tr>
-                <th>Nome</th>
+                <th>#</th>
+                <th>Usuário</th>
                 <th>Pontos</th>
-                <th>Classificação</th>
+                <th>Medalhas</th>
+                <th>Ganhos (R$)</th>
+                <th>Competições</th>
             </tr>
         </thead>
         <tbody>
             {% for user in rankinglist %}
             <tr>
-                <td>{{ user.0 }}</td>
-                <td>{{ user.1 }}</td>
-                <td>{{ user.2 }}</td>
+                <td>{{ forloop.counter }}</td>
+                <td>
+                    <strong>{{ user.1 }}</strong>
+                </td>
+                <td>
+                    <span class="points-placeholder">Em breve (TBD)</span>
+                </td>
+                <td>
+                    {% if user.2 > 0 %}<span class="medal-icon gold">●</span>{{ user.2 }}{% endif %}
+                    {% if user.3 > 0 %}<span class="medal-icon silver">●</span>{{ user.3 }}{% endif %}
+                    {% if user.4 > 0 %}<span class="medal-icon bronze">●</span>{{ user.4 }}{% endif %}
+                    {% if user.2 == 0 and user.3 == 0 and user.4 == 0 %}-{% endif %}
+                </td>
+                <td>
+                    {% if user.5 > 0 %}
+                        R$ {{ user.5|floatformat:2 }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>{{ user.6 }}</td>
             </tr>
             {% endfor %}
         </tbody>
