@@ -14,6 +14,9 @@
         <a href="?sort=gold" class="btn-filter {% if current_sort == 'gold' %}active{% endif %}">
             Por Medalhas (Padrão)
         </a>
+        <a href="?sort=points" class="btn-filter {% if current_sort == 'points' %}active{% endif %}">
+            Por Pontos
+        </a>
         <a href="?sort=money" class="btn-filter {% if current_sort == 'money' %}active{% endif %}">
             Por Dinheiro
         </a>
@@ -44,7 +47,7 @@
                     <strong>{{ user.1 }}</strong>
                 </td>
                 <td>
-                    <span class="points-placeholder">Em breve (TBD)</span>
+                    <strong>{{ user.7 }}</strong>
                 </td>
                 <td>
                     {% if user.2 > 0 %}<span class="medal-icon gold">●</span>{{ user.2 }}{% endif %}
@@ -54,7 +57,7 @@
                 </td>
                 <td>
                     {% if user.5 > 0 %}
-                        R$ {{ user.5|floatformat:2 }}
+                        R$ {{ user.5|floatformat:0 }}
                     {% else %}
                         -
                     {% endif %}

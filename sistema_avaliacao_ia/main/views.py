@@ -192,12 +192,25 @@ def comp_view(request, compid):
 
 
 def ranking(request):
-    resp = requests.get("http://127.0.0.1:8000/api/user/get-all-users/")
-    rankinglist = resp.json()['users']
+    sort_by = request.GET.get('sort', 'gold')
+    
+    api_url = f"http://127.0.0.1:8000/api/user/get-global-ranking/?sort={sort_by}"
+    resp = requests.get(api_url)
+    ranking_data = resp.json().get('ranking', [])
+
+    for user in ranking_data:
+        try:
+            if user[5]:
+                user[5] = float(user[5])
+            else:
+                user[5] = 0.0
+        except (ValueError, TypeError):
+            user[5] = 0.0
 
     context = {
-        "rankinglist" : rankinglist,
-        "user_name": request.session.get('user_name')
+        "rankinglist" : ranking_data,
+        "user_name": request.session.get('user_name'),
+        "current_sort": sort_by
     }
     return render(request, "ranking/ranking.html", context)
 

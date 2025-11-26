@@ -264,6 +264,8 @@ def get_global_ranking(request):
         order_clause = "COALESCE(s.dinheiro, 0) DESC"
     elif sort_by == 'comps':
         order_clause = "COALESCE(p.total_comps, 0) DESC"
+    elif sort_by == 'points':
+        order_clause = "COALESCE(s.pontos_totais, 0) DESC"
     elif sort_by == 'name':
         order_clause = "u.nome ASC"
 
@@ -276,11 +278,20 @@ def get_global_ranking(request):
                     COUNT(CASE WHEN tipo = 0 THEN 1 END) as ouro,
                     COUNT(CASE WHEN tipo = 1 THEN 1 END) as prata,
                     COUNT(CASE WHEN tipo = 2 THEN 1 END) as bronze,
-                    SUM(COALESCE(valor, 0)) as dinheiro
+                    SUM(COALESCE(valor, 0)) as dinheiro,
+                    SUM(
+                        CASE 
+                            WHEN classificacao = 1 THEN 1000
+                            WHEN classificacao = 2 THEN 500
+                            WHEN classificacao = 3 THEN 250
+                            WHEN classificacao <= 10 THEN 100
+                            ELSE 10
+                        END
+                    ) as pontos_totais
                 FROM (
-                    SELECT id_competidor, tipo, valor FROM premios_competidor_pred
+                    SELECT id_competidor, tipo, valor, classificacao FROM premios_competidor_pred
                     UNION ALL
-                    SELECT id_competidor, tipo, valor FROM premios_competidor_simul
+                    SELECT id_competidor, tipo, valor, classificacao FROM premios_competidor_simul
                 ) all_prizes
                 GROUP BY id_competidor
             ),
@@ -300,7 +311,8 @@ def get_global_ranking(request):
                 COALESCE(s.prata, 0),
                 COALESCE(s.bronze, 0),
                 COALESCE(s.dinheiro, 0),
-                COALESCE(p.total_comps, 0)
+                COALESCE(p.total_comps, 0),
+                COALESCE(s.pontos_totais, 0)
             FROM usuario u
             LEFT JOIN user_stats s ON u.id = s.id_competidor
             LEFT JOIN participation p ON u.id = p.id_competidor
@@ -311,4 +323,3 @@ def get_global_ranking(request):
         ranking_data = cursor.fetchall()
 
     return JsonResponse({"ranking": ranking_data})
-
