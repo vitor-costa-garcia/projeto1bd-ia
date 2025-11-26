@@ -28,9 +28,13 @@ thead th {
     background-color: #f4f7f6;
     border-bottom: 2px solid #dee2e6;
     padding: 1rem;
-    text-align: left;
+    text-align: center;
     font-size: 0.9rem;
     color: #495057;
+}
+
+thead th:first-child {
+    text-align: left;
 }
 
 tbody tr {
@@ -48,4 +52,50 @@ tbody tr:hover {
 tbody td {
     padding: 1rem;
     color: #212529;
+    text-align: center;
+    vertical-align: middle;
+}
+
+tbody td:first-child {
+    text-align: left;
+    font-weight: 500;
+}
+
+.medal-icon {
+    margin-right: 4px;
+    font-weight: bold;
+}
+.gold { color: #ffc107; }
+.silver { color: #adb5bd; }
+.bronze { color: #cd7f32; }
+
+.btn-filter {
+    background-color: #e9ecef;
+    color: #495057;
+    border: 1px solid #ced4da;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.btn-filter:hover {
+    background-color: #dee2e6;
+}
+
+.btn-filter.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.points-placeholder {
+    color: #dc3545;
+    font-size: 0.8rem;
+    font-style: italic;
+    background: #fff0f0;
+    padding: 2px 6px;
+    border-radius: 4px;
 }

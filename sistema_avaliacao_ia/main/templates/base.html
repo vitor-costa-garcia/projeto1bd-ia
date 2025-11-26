@@ -30,11 +30,59 @@
         </div>
     </nav>
 
-    <main class="main-content">
-        {% block content %}
-        {% endblock %}
-    </main>
+        <main class="main-content">
+            {% block content %}
+            {% endblock %}
+        </main>
+    </div>
     
     {% block extra_js %}{% endblock %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const messages = document.querySelectorAll('.messages li');
+            if (messages.length > 0) {
+                setTimeout(function() {
+                    messages.forEach(function(msg) {
+                        // Adiciona uma transição suave de opacidade
+                        msg.style.transition = "opacity 0.5s ease";
+                        msg.style.opacity = "0";
+                        
+                        // Remove o elemento do DOM depois que a transição terminar
+                        setTimeout(function() {
+                            msg.remove();
+                            // Se a lista ficar vazia, remove o container ul também
+                            const list = document.querySelector('.messages');
+                            if (list && list.children.length === 0) {
+                                list.remove();
+                            }
+                        }, 500);
+                    });
+                }, 5000); // 5000 milissegundos = 5 segundos
+            }
+        });
+
+        (function() {
+            const idleDuration = 900000; 
+            let idleTimer;
+
+            const resetTimer = () => {
+                clearTimeout(idleTimer);
+                idleTimer = setTimeout(() => {
+                    alert("Sua sessão expirou por inatividade.");
+                    window.location.href = "{% url 'main:logout' %}";
+                }, idleDuration);
+            };
+
+            window.onload = resetTimer;
+            window.onmousemove = resetTimer;
+            window.onmousedown = resetTimer;
+            window.ontouchstart = resetTimer;
+            window.onclick = resetTimer;
+            window.onkeypress = resetTimer;
+            window.addEventListener('scroll', resetTimer, true);
+
+        })();
+    </script>
 </body>
 </html>

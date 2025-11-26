@@ -188,4 +188,127 @@ def get_user_prizes(request, userid):
 
     return JsonResponse({"user_prizes": result})
 
+def get_user_stats(request, userid):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT COUNT(*) FROM (
+                SELECT id_competicao FROM composicao_equipe_pred WHERE id_competidor = %s
+                UNION
+                SELECT id_competicao FROM composicao_equipe_simul WHERE id_competidor = %s
+            ) as total
+            """, [userid, userid]
+        )
+        total_comps = cursor.fetchone()[0]
+
+        cursor.execute(
+            """
+            SELECT COUNT(*) FROM (
+                SELECT s.id_equipe FROM submissao_equipe_pred s
+                JOIN composicao_equipe_pred c ON s.id_equipe = c.id_equipe
+                WHERE c.id_competidor = %s
+                UNION ALL
+                SELECT s.id_equipe FROM submissao_equipe_simul s
+                JOIN composicao_equipe_simul c ON s.id_equipe = c.id_equipe
+                WHERE c.id_competidor = %s
+            ) as total
+            """, [userid, userid]
+        )
+        total_subs = cursor.fetchone()[0]
+
+        cursor.execute(
+            """
+            SELECT TO_CHAR(data_envio, 'YYYY-MM-DD') as dia, COUNT(*) as qtd
+            FROM (
+                SELECT data_hora_envio as data_envio FROM submissao_equipe_pred s
+                JOIN composicao_equipe_pred c ON s.id_equipe = c.id_equipe
+                WHERE c.id_competidor = %s
+                UNION ALL
+                SELECT data_hora_envio as data_envio FROM submissao_equipe_simul s
+                JOIN composicao_equipe_simul c ON s.id_equipe = c.id_equipe
+                WHERE c.id_competidor = %s
+            ) as envios
+            GROUP BY dia
+            ORDER BY dia ASC
+            LIMIT 30
+            """, [userid, userid]
+        )
+        daily_activity = cursor.fetchall()
+
+        cursor.execute(
+            """
+            SELECT 'Predição', COUNT(*) FROM composicao_equipe_pred WHERE id_competidor = %s
+            UNION ALL
+            SELECT 'Simulação', COUNT(*) FROM composicao_equipe_simul WHERE id_competidor = %s
+            """, [userid, userid]
+        )
+        comp_types = cursor.fetchall()
+
+    return JsonResponse({
+        "stats": {
+            "total_competitions": total_comps,
+            "total_submissions": total_subs,
+            "activity_dates": [row[0] for row in daily_activity],
+            "activity_counts": [row[1] for row in daily_activity],
+            "type_labels": [row[0] for row in comp_types],
+            "type_counts": [row[1] for row in comp_types]
+        }
+    })
+
+def get_global_ranking(request):
+    sort_by = request.GET.get('sort', 'gold')
+    
+    order_clause = "COALESCE(s.ouro, 0) DESC, COALESCE(s.prata, 0) DESC, COALESCE(s.bronze, 0) DESC"
+    
+    if sort_by == 'money':
+        order_clause = "COALESCE(s.dinheiro, 0) DESC"
+    elif sort_by == 'comps':
+        order_clause = "COALESCE(p.total_comps, 0) DESC"
+    elif sort_by == 'name':
+        order_clause = "u.nome ASC"
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"""
+            WITH user_stats AS (
+                SELECT
+                    id_competidor,
+                    COUNT(CASE WHEN tipo = 0 THEN 1 END) as ouro,
+                    COUNT(CASE WHEN tipo = 1 THEN 1 END) as prata,
+                    COUNT(CASE WHEN tipo = 2 THEN 1 END) as bronze,
+                    SUM(COALESCE(valor, 0)) as dinheiro
+                FROM (
+                    SELECT id_competidor, tipo, valor FROM premios_competidor_pred
+                    UNION ALL
+                    SELECT id_competidor, tipo, valor FROM premios_competidor_simul
+                ) all_prizes
+                GROUP BY id_competidor
+            ),
+            participation AS (
+                SELECT id_competidor, COUNT(*) as total_comps
+                FROM (
+                    SELECT id_competidor FROM composicao_equipe_pred
+                    UNION ALL
+                    SELECT id_competidor FROM composicao_equipe_simul
+                ) all_comps
+                GROUP BY id_competidor
+            )
+            SELECT
+                u.id,
+                u.nome,
+                COALESCE(s.ouro, 0),
+                COALESCE(s.prata, 0),
+                COALESCE(s.bronze, 0),
+                COALESCE(s.dinheiro, 0),
+                COALESCE(p.total_comps, 0)
+            FROM usuario u
+            LEFT JOIN user_stats s ON u.id = s.id_competidor
+            LEFT JOIN participation p ON u.id = p.id_competidor
+            ORDER BY {order_clause}
+            LIMIT 100;
+            """
+        )
+        ranking_data = cursor.fetchall()
+
+    return JsonResponse({"ranking": ranking_data})
 

@@ -1,13 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     
+    const scriptTag = document.getElementById('form-script');
+    const minDate = scriptTag ? scriptTag.dataset.serverToday : new Date().toISOString().split('T')[0];
+
     const dataInicioInput = document.querySelector('input[name="data_inicio"]');
     const dataFimInput = document.querySelector('input[name="data_fim"]');
-    
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    const minDate = `${yyyy}-${mm}-${dd}`;
     
     if (dataInicioInput) {
         dataInicioInput.setAttribute('min', minDate);
@@ -38,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const tipoCompFormSelect = document.getElementById('tipo-comp-select');
     const oficialFormSelect = document.getElementById('oficial-select');
+    const metricaPredSelect = document.getElementById('metrica_predicao');
 
     const predInputs = predFormDiv.querySelectorAll('input[type="file"], select');
     const simulInputs = simulFormDiv.querySelectorAll('input[type="file"], select');
@@ -45,13 +43,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function ShowPredForm(){
         simulFormDiv.style.display = 'none';
-        predFormDiv.style.display = '';
+        predFormDiv.style.display = 'block';
         predInputs.forEach(input => input.setAttribute('required', 'required'));
         simulInputs.forEach(input => input.removeAttribute('required'));
+        
+        if (metricaPredSelect) {
+            metricaPredSelect.value = 'RMSE';
+        }
     }
 
     function ShowSimulForm(){
-        simulFormDiv.style.display = '';
+        simulFormDiv.style.display = 'block';
         predFormDiv.style.display = 'none';
         simulInputs.forEach(input => input.setAttribute('required', 'required'));
         predInputs.forEach(input => input.removeAttribute('required'));
@@ -78,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         oficialInputs.forEach(input => input.removeAttribute('required'));
         
         if(oficialFormSelect.value === '1'){ 
-            oficialFormDiv.style.display = '';
+            oficialFormDiv.style.display = 'block';
             oficialInputs.forEach(input => input.setAttribute('required', 'required'));
         }
     })
@@ -92,20 +94,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const rulesContainer = document.getElementById('rules-container');
     let ruleCounter = 0;
 
-    addRuleBtn.addEventListener('click', () => {
-        ruleCounter++;
-        const newRuleInput = document.createElement('div');
-        newRuleInput.className = 'form-group rule-item';
-        newRuleInput.innerHTML = `
-            <input type="text" name="regra${ruleCounter}" placeholder="Regra #${ruleCounter}" required>
-        `;
-        rulesContainer.appendChild(newRuleInput);
-    });
+    if (addRuleBtn) {
+        addRuleBtn.addEventListener('click', () => {
+            ruleCounter++;
+            const newRuleInput = document.createElement('div');
+            newRuleInput.className = 'form-group rule-item';
+            newRuleInput.innerHTML = `
+                <input type="text" name="regra" placeholder="Regra #${ruleCounter}" required>
+            `;
+            rulesContainer.appendChild(newRuleInput);
+        });
+    }
 
-    removeRuleBtn.addEventListener('click', () => {
-        if (rulesContainer.children.length > 0) {
-            rulesContainer.removeChild(rulesContainer.lastChild);
-            if (ruleCounter > 0) ruleCounter--;
-        }
-    });
+    if (removeRuleBtn) {
+        removeRuleBtn.addEventListener('click', () => {
+            if (rulesContainer.children.length > 0) {
+                rulesContainer.removeChild(rulesContainer.lastChild);
+                if (ruleCounter > 0) ruleCounter--;
+            }
+        });
+    }
 });

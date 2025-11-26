@@ -10,6 +10,8 @@ urlpatterns = [
     path("logout/", views.logout_view, name="logout"),
 
     path("user/", views.user, name="user-profile"),
+    path("user/history/", views.user_history_view, name="user-history"),
+    path("user/report/", views.user_report_view, name="user-report"), # Nova rota
     path("become-organizer/", views.become_organizer, name="become-organizer"),
 
     path("competicoes/", views.comp, name="comp"),

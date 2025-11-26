@@ -9,6 +9,7 @@ from django.contrib.auth.hashers import make_password
 import pandas as pd
 import numpy as np
 from django.conf import settings
+import math
 
 def rmse_from_csv(file1, file2):
 
@@ -41,7 +42,8 @@ def get_all_competitions(request):
                         A.flg_oficial,
                         A.dificuldade,
                         A.premiacao,
-                        COALESCE(EQ.team_count, 0) AS total_equipes
+                        COALESCE(EQ.team_count, 0) AS total_equipes,
+                        A.data_criacao
                     FROM
                         competicao_pred A
                     JOIN 
@@ -66,7 +68,8 @@ def get_all_competitions(request):
                         A.flg_oficial,
                         A.dificuldade,
                         A.premiacao,
-                        COALESCE(EQ.team_count, 0) AS total_equipes
+                        COALESCE(EQ.team_count, 0) AS total_equipes,
+                        A.data_criacao
                     FROM
                         competicao_simul A
                     JOIN 
@@ -77,6 +80,8 @@ def get_all_competitions(request):
                          GROUP BY id_competicao) AS EQ
                     ON A.id_competicao = EQ.id_competicao
                     WHERE A.flg_deletada = false
+
+                    ORDER BY data_criacao DESC
                     """
                     )
 
@@ -139,52 +144,70 @@ def post_submission(request, compid, equipeid):
         submission = request.FILES.get('submission-input')
         if not submission:
             return JsonResponse({"error": "Nenhum arquivo enviado"}, status=400)
+        
+        is_pred = compid % 2
+        id_org = None
 
         with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT COUNT(*) 
-                FROM submissao_equipe_pred
-                WHERE id_equipe = %s AND id_competicao = %s
-                """,
-                [equipeid, compid]
-            )
-            nsub = cursor.fetchall()[0][0]
+            if is_pred:
+                cursor.execute("SELECT id_org_competicao, dataset_gabarito FROM competicao_pred WHERE id_competicao = %s", [compid])
+            else:
+                cursor.execute("SELECT id_org_competicao, ambiente FROM competicao_simul WHERE id_competicao = %s", [compid])
+            
+            result = cursor.fetchone()
+            if not result:
+                return JsonResponse({"error": "Competição não encontrada"}, status=404)
+            
+            id_org = result[0]
+            resource_path = result[1]
+
+            if is_pred:
+                cursor.execute("SELECT COUNT(*) FROM submissao_equipe_pred WHERE id_equipe = %s AND id_competicao = %s", [equipeid, compid])
+            else:
+                cursor.execute("SELECT COUNT(*) FROM submissao_equipe_simul WHERE id_equipe = %s AND id_competicao = %s", [equipeid, compid])
+            
+            nsub = cursor.fetchone()[0]
 
         fs = FileSystemStorage(location="./uploads/submissoes")
         filename = f"{compid}_{equipeid}_{nsub}.csv"
         fs.save(filename, submission)
-
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT dataset_gabarito FROM competicao_pred WHERE id_competicao = %s",
-                [compid]
-            )
-            dataset_gab = cursor.fetchall()[0][0]
-
-        gabarito_path = os.path.join(settings.BASE_DIR, 'uploads', dataset_gab)
         submission_path = os.path.join(settings.BASE_DIR, 'uploads', 'submissoes', filename)
-
-        error = rmse_from_csv(submission_path, gabarito_path)
+        
+        score = 0.0
+        if is_pred:
+            gabarito_path = os.path.join(settings.BASE_DIR, 'uploads', resource_path)
+            try:
+                score = rmse_from_csv(submission_path, gabarito_path)
+            except Exception as e:
+                 return JsonResponse({"error": f"Erro ao calcular RMSE: {str(e)}"}, status=400)
+        else:
+            score = 0.0
 
         with connection.cursor() as cursor:
-            cursor.execute("""
-                                INSERT INTO submissao_equipe_pred (
-                                    id_equipe,
-                                    id_competicao,
-                                    data_hora_envio,
-                                    arq_submissao,
-                                    score
-                                ) VALUES (
-                                    %s,
-                                    %s,
-                                    NOW(),
-                                    %s,
-                                    %s
-                                )
-                           """, [equipeid, compid, f"submissoes\{filename}", float(error)])
+            if is_pred:
+                cursor.execute("""
+                    INSERT INTO submissao_equipe_pred (
+                        id_equipe,
+                        id_competicao,
+                        id_org_competicao,
+                        data_hora_envio,
+                        arq_submissao,
+                        score
+                    ) VALUES (%s, %s, %s, NOW(), %s, %s)
+                """, [equipeid, compid, id_org, f"submissoes/{filename}", float(score)])
+            else:
+                cursor.execute("""
+                    INSERT INTO submissao_equipe_simul (
+                        id_equipe,
+                        id_competicao,
+                        id_org_competicao,
+                        data_hora_envio,
+                        arq_submissao,
+                        score
+                    ) VALUES (%s, %s, %s, NOW(), %s, %s)
+                """, [equipeid, compid, id_org, f"submissoes/{filename}", float(score)])
 
-        return JsonResponse({"rmse": error}, status=201)
+        return JsonResponse({"rmse": score, "score": score}, status=201)
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
@@ -205,6 +228,7 @@ def get_nextseq_comp(type, add):
 
     return result[0][0]
 
+@transaction.atomic
 @csrf_exempt
 def post_competition(request):
     if request.method != "POST":
@@ -234,12 +258,13 @@ def post_competition(request):
         if not data_inicio or not data_fim:
             return JsonResponse({"error": "Data de início e fim são obrigatórias."}, status=400)
 
+        regras = request.POST.getlist('regra')
+
         with connection.cursor() as cursor:
             new_comp_id = None 
             
             if tipo_comp == '0':
                 metrica = data.get('metrica_predicao')
-
                 nextid = get_nextseq_comp(type=0, add=False)
                 
                 cursor.execute(
@@ -247,15 +272,15 @@ def post_competition(request):
                     INSERT INTO competicao_pred 
                     (id_competicao, id_org_competicao, flg_oficial, titulo, descricao, dificuldade, 
                      data_inicio, data_fim, metrica_desempenho, 
-                     premiacao, flg_premiada, flg_deletada,
+                     premiacao,
                      dataset_tt, dataset_submissao, dataset_gabarito) 
-                    VALUES (%s01, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id_competicao
                     """,
                     [
                         nextid, id_org, flg_oficial, data.get('titulo'), data.get('descricao'), data.get('dificuldade'),
                         data_inicio, data_fim, metrica,
-                        premiacao, False, False,
+                        premiacao,
                         'temp', 'temp', 'temp' 
                     ]
                 )
@@ -274,37 +299,33 @@ def post_competition(request):
                     [f_tt, f_sub, f_gab, new_comp_id, id_org]
                 )
 
-                get_nextseq_comp(type=0, add=True)
+                if regras:
+                    for i, regra in enumerate(regras):
+                        cursor.execute(
+                            "INSERT INTO competicao_regras_pred (id_competicao, n_ordem, regra) VALUES (%s, %s, %s)",
+                            [new_comp_id, i + 1, regra]
+                        )
 
-                regras = [value for key, value in request.POST.items() if key.startswith('regra')]
-                for i, regra in enumerate(regras, start=1):
-                    cursor.execute(
-                        """
-                        INSERT INTO competicao_regras_pred (id_competicao, n_ordem, regra)
-                        VALUES (%s, %s, %s)
-                        """,
-                        [new_comp_id, i, regra]
-                    )
+                get_nextseq_comp(type=0, add=True)
 
 
             elif tipo_comp == '1':
                 metrica = data.get('metrica_simulacao')
-
                 nextid = get_nextseq_comp(type=1, add=False)
                 
                 cursor.execute(
                     """
                     INSERT INTO competicao_simul
                     (id_competicao, id_org_competicao, flg_oficial, titulo, descricao, dificuldade, 
-                     data_inicio, data_fim, metrica_desempenho,
-                     premiacao, flg_premiada, flg_deletada, ambiente)
-                    VALUES (%s02, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     data_inicio, data_fim, metrica_desempenho, 
+                     premiacao, ambiente)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id_competicao
                     """,
                     [
                         nextid, id_org, flg_oficial, data.get('titulo'), data.get('descricao'), data.get('dificuldade'),
                         data_inicio, data_fim, metrica,
-                        premiacao, False, False,
+                        premiacao,
                         'temp' 
                     ]
                 )
@@ -321,17 +342,14 @@ def post_competition(request):
                     [f_ambiente, new_comp_id, id_org]
                 )
 
-                get_nextseq_comp(type=1, add=True)
+                if regras:
+                    for i, regra in enumerate(regras):
+                        cursor.execute(
+                            "INSERT INTO competicao_regras_simul (id_competicao, n_ordem, regra) VALUES (%s, %s, %s)",
+                            [new_comp_id, i + 1, regra]
+                        )
 
-                regras = [value for key, value in request.POST.items() if key.startswith('regra')]
-                for i, regra in enumerate(regras, start=1):
-                    cursor.execute(
-                        """
-                        INSERT INTO competicao_regras_simul (id_competicao, n_ordem, regra)
-                        VALUES (%s, %s, %s)
-                        """,
-                        [new_comp_id, i, regra]
-                    )
+                get_nextseq_comp(type=1, add=True)
 
             else:
                 return JsonResponse({"error": "Tipo de competição inválido. Selecione 'Predição' ou 'Simulação'."}, status=400)
@@ -346,7 +364,6 @@ def post_competition(request):
         return JsonResponse({"error": f"Um erro inesperado ocorreu: {e}"}, status=500)
 
 def get_competition(request, compid):
-    
     with connection.cursor() as cursor:
         match int(compid)%2:
             case 1:
@@ -408,7 +425,6 @@ def get_competition(request, compid):
             ;
             """, [compid]
         )
-
         result_eq = cursor.fetchall() or [0]
 
         cursor.execute(
@@ -426,7 +442,6 @@ def get_competition(request, compid):
             ;
             """, [compid]
         )
-
         result_ca = cursor.fetchall() or [0]
 
         return JsonResponse({"competition": result, "n_teams": result_eq, "n_comp":result_ca})
@@ -446,7 +461,6 @@ def get_submissions(request, compid, equipeid):
                         id_competicao = %s AND
                         id_equipe = %s""", [compid, equipeid]
                 )
-
             case 0:
                 cursor.execute(
                     """
@@ -459,45 +473,8 @@ def get_submissions(request, compid, equipeid):
                         id_competicao = %s AND
                         id_equipe = %s""", [compid, equipeid]
                 )
-
         result_sub = cursor.fetchall() or [0]
-
     return JsonResponse({"submissoes": result_sub})
-
-def get_regras_competition(request, compid):
-    with connection.cursor() as cursor:
-        match int(compid)%2:
-            case 1:
-                cursor.execute(
-                    """
-                    SELECT
-                        n_ordem, regra
-                    FROM
-                        competicao_regras_pred
-                    WHERE
-                        id_competicao = %s
-                    ORDER BY
-                        n_ordem
-                    """, [compid]
-                )
-
-            case 0:
-                cursor.execute(
-                    """
-                    SELECT
-                        n_ordem, regra
-                    FROM
-                        competicao_regras_simul
-                    WHERE
-                        id_competicao = %s
-                    ORDER BY
-                        n_ordem
-                    """, [compid]
-                )
-
-        result_rg = cursor.fetchall() or []
-
-    return JsonResponse({"regras": result_rg})
 
 def get_top20_ranking(request, compid):
     with connection.cursor() as cursor:
@@ -541,106 +518,152 @@ def get_top20_ranking(request, compid):
                     """,
                     [compid]
                 )
-
         ranking = cursor.fetchall()
-
     return JsonResponse({"ranking_top20": ranking})
 
+@transaction.atomic
 def verify_end_competition(request, compid):
     with connection.cursor() as cursor:
-        match int(compid) % 2:
-            case 1:
-                cursor.execute(
-                    """
-                    SELECT
-                        data_fim <= NOW() AS has_ended,
-                        flg_premiada AS has_awarded
-                    FROM
-                        competicao_pred
-                    WHERE
-                        id_competicao = %s
+        has_ended = False
+        has_awarded = True
+        is_official = False
+        premiacao_total = 0.0
+        is_pred = int(compid) % 2
+
+        if is_pred:
+            cursor.execute(
+                """
+                SELECT data_fim <= NOW(), flg_premiada, flg_oficial, premiacao
+                FROM competicao_pred
+                WHERE id_competicao = %s
+                """,
+                [compid]
+            )
+        else:
+            cursor.execute(
+                """
+                SELECT data_fim <= NOW(), flg_premiada, flg_oficial, premiacao
+                FROM competicao_simul
+                WHERE id_competicao = %s
+                """,
+                [compid]
+            )
+        
+        result = cursor.fetchone()
+        if not result:
+            return JsonResponse({"error": "Competição não encontrada"}, status=404)
+
+        has_ended, has_awarded, is_official, premiacao_total = result
+
+        if not has_ended or has_awarded:
+            return JsonResponse({"message": "Competição não elegível para premiação."})
+
+        top_50_teams = []
+        if is_pred:
+            cursor.execute("""
+                SELECT 
+                    e.id AS id_equipe,
+                    MIN(s.score) AS best_score
+                FROM 
+                    submissao_equipe_pred s
+                JOIN 
+                    equipe_pred e ON e.id = s.id_equipe
+                WHERE 
+                    s.id_competicao = %s
+                GROUP BY 
+                    e.id
+                ORDER BY 
+                    best_score ASC
+                LIMIT 50;
+                """,
+                [compid]
+            )
+        else:
+            cursor.execute("""
+                SELECT 
+                    e.id AS id_equipe,
+                    MIN(s.score) AS best_score
+                FROM 
+                    submissao_equipe_simul s
+                JOIN 
+                    equipe_simul e ON e.id = s.id_equipe
+                WHERE 
+                    s.id_competicao = %s
+                GROUP BY 
+                    e.id
+                ORDER BY 
+                    best_score ASC
+                LIMIT 50;
+                """,
+                [compid]
+            )
+        top_50_teams = cursor.fetchall()
+
+        for i, team in enumerate(top_50_teams):
+            team_id = team[0]
+            classificacao = i + 1
+
+            tipo = 0
+            if classificacao > 15:
+                tipo = 2
+            elif classificacao > 5:
+                tipo = 1
+            
+            team_members = []
+            if is_pred:
+                cursor.execute("""
+                    SELECT id_competidor FROM composicao_equipe_pred
+                    WHERE id_equipe = %s AND id_competicao = %s AND data_hora_fim IS NULL
                     """,
-                    [compid]
+                    [team_id, compid]
                 )
+            else:
+                cursor.execute("""
+                    SELECT id_competidor FROM composicao_equipe_simul
+                    WHERE id_equipe = %s AND id_competicao = %s AND data_hora_fim IS NULL
+                    """,
+                    [team_id, compid]
+                )
+            team_members = cursor.fetchall()
+            
+            if not team_members:
+                continue 
 
-                data = cursor.fetchall()[0]
+            valor_premio = 0
+            if is_official and premiacao_total and float(premiacao_total) > 0:
+                valor_premio = float(premiacao_total) / len(team_members)
 
-                if not data[0]:
-                    return JsonResponse({"success": "Competição não acabou ainda."}, status=200)
-
-                if data[1]:
-                    return JsonResponse({"success": "Competição já distribuiu premiações."}, status=200)
-
-                if data[0] and not data[1]:
-                    cursor.execute("""
-                        SELECT 
-                            e.id AS id_equipe
-                        FROM 
-                            submissao_equipe_pred s
-                        JOIN 
-                            equipe_pred e ON e.id = s.id_equipe
-                        WHERE 
-                            s.id_competicao = %s
-                        GROUP BY 
-                            e.id,
-                            s.score
-                        ORDER BY 
-                            s.score ASC
-                        LIMIT 50;
-                        """,
-                        [compid]
-                    )
-
-                    top_50_teams = cursor.fetchall()
-
+            for member in team_members:
+                competitor_id = member[0]
+                if is_pred:
                     cursor.execute(
                         """
-                        SELECT premiacao FROM competicao_pred
-                        WHERE id_competicao = %s
+                        INSERT INTO premios_competidor_pred (id_competidor, id_competicao, data_recebimento, tipo, classificacao, valor)
+                        VALUES (%s, %s, NOW(), %s, %s, %s)
                         """,
-                        [compid]
+                        [competitor_id, compid, tipo, classificacao, valor_premio if valor_premio > 0 else None]
                     )
-                    premiacao_total = cursor.fetchall()[0][0] or 0
-                    counter = 1
-                    tipo = 0
-                    for team in top_50_teams:
-                        cursor.execute("""
-                            SELECT id_competidor FROM composicao_equipe_pred
-                            WHERE id_equipe = %s AND id_competicao = %s AND data_hora_fim IS NULL
-                            """,
-                            [team[0], compid]
-                        )
-
-                        top_50_team_members = cursor.fetchall()
-
-
-                        for competitor in top_50_team_members:
-                            if counter > 5:
-                                tipo = 1
-                            elif counter > 15:
-                                tipo = 2
-                            cursor.execute(
-                                """
-                                INSERT INTO premios_competidor_pred (id_competidor, id_competicao, data_recebimento, tipo, classificacao, valor)
-                                VALUES (%s, %s, NOW(), %s, %s, %s)
-                                """,
-                                [competitor[0], compid, tipo, counter, premiacao_total/(len(top_50_team_members))]
-                            )
-                            counter += 1
-
-                    cursor.execute(
+                else:
+                     cursor.execute(
                         """
-                        UPDATE competicao_pred SET flg_premiada = TRUE WHERE id_competicao = %s
+                        INSERT INTO premios_competidor_simul (id_competidor, id_competicao, data_recebimento, tipo, classificacao, valor)
+                        VALUES (%s, %s, NOW(), %s, %s, %s)
                         """,
-                        [compid]
+                        [competitor_id, compid, tipo, classificacao, valor_premio if valor_premio > 0 else None]
                     )
 
-                    return JsonResponse({"success": "Premiações distribuídas com sucesso."}, status=200)
+        if is_pred:
+            cursor.execute(
+                "UPDATE competicao_pred SET flg_premiada = true WHERE id_competicao = %s",
+                [compid]
+            )
+        else:
+            cursor.execute(
+                "UPDATE competicao_simul SET flg_premiada = true WHERE id_competicao = %s",
+                [compid]
+            )
 
-            case 0:
-                pass
-
-    return JsonResponse({"error": "Algo de errado aconteceu"}, status=500)
+    return JsonResponse({"message": "Premiação processada com sucesso."})
 
 
 def salvar_arquivo(file, id_competicao, tipo_pasta):
@@ -700,6 +723,16 @@ def create_team(request):
             id_org = None
             is_pred = compid % 2
             
+            if is_pred:
+                cursor.execute("SELECT id_org_competicao FROM competicao_pred WHERE id_competicao = %s", [compid])
+            else:
+                cursor.execute("SELECT id_org_competicao FROM competicao_simul WHERE id_competicao = %s", [compid])
+            
+            result = cursor.fetchone()
+            if not result or result[0] is None:
+                return JsonResponse({"error": "Competição não encontrada ou dados da competição corrompidos (Organizador não encontrado)."}, status=404)
+            id_org = result[0]
+            
             new_team_id = None
             
             todos_membros = set([id_competidor_criador] + membros_adicionais_ids)
@@ -707,40 +740,40 @@ def create_team(request):
             if is_pred:
                 cursor.execute(
                     """
-                    INSERT INTO equipe_pred (id_competicao, nome)
-                    VALUES (%s, %s)
+                    INSERT INTO equipe_pred (id_competicao, id_org_competicao, nome)
+                    VALUES (%s, %s, %s)
                     RETURNING id
                     """,
-                    [compid, nome_equipe]
+                    [compid, id_org, nome_equipe]
                 )
                 new_team_id = cursor.fetchone()[0]
                 
                 for member_id in todos_membros:
                     cursor.execute(
                         """
-                        INSERT INTO composicao_equipe_pred (id_equipe, id_competicao, id_competidor, data_hora_inicio)
-                        VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
+                        INSERT INTO composicao_equipe_pred (id_equipe, id_competicao, id_org_competicao, id_competidor, data_hora_inicio)
+                        VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
                         """,
-                        [new_team_id, compid, member_id]
+                        [new_team_id, compid, id_org, member_id]
                     )
             else:
                 cursor.execute(
                     """
-                    INSERT INTO equipe_simul (id_competicao, nome)
-                    VALUES (%s, %s)
+                    INSERT INTO equipe_simul (id_competicao, id_org_competicao, nome)
+                    VALUES (%s, %s, %s)
                     RETURNING id
                     """,
-                    [compid, nome_equipe]
+                    [compid, id_org, nome_equipe]
                 )
                 new_team_id = cursor.fetchone()[0]
                 
                 for member_id in todos_membros:
                     cursor.execute(
                         """
-                        INSERT INTO composicao_equipe_simul (id_equipe, id_competicao, id_competidor, data_hora_inicio)
-                        VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
+                        INSERT INTO composicao_equipe_simul (id_equipe, id_competicao, id_org_competicao, id_competidor, data_hora_inicio)
+                        VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
                         """,
-                        [new_team_id, compid, member_id]
+                        [new_team_id, compid, id_org, member_id]
                     )
         
         return JsonResponse({"message": "Equipe criada com sucesso!", "id_equipe": new_team_id}, status=201)
@@ -789,22 +822,32 @@ def add_member_to_team(request):
         with connection.cursor() as cursor:
             id_org = None
             is_pred = compid % 2
+            
+            if is_pred:
+                cursor.execute("SELECT id_org_competicao FROM competicao_pred WHERE id_competicao = %s", [compid])
+            else:
+                cursor.execute("SELECT id_org_competicao FROM competicao_simul WHERE id_competicao = %s", [compid])
+            
+            result = cursor.fetchone()
+            if not result:
+                return JsonResponse({"error": "Competição não encontrada."}, status=404)
+            id_org = result[0]
 
             if is_pred:
                 cursor.execute(
                     """
-                    INSERT INTO composicao_equipe_pred (id_equipe, id_competicao, id_competidor, data_hora_inicio)
-                    VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
+                    INSERT INTO composicao_equipe_pred (id_equipe, id_competicao, id_org_competicao, id_competidor, data_hora_inicio)
+                    VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
                     """,
-                    [equipe_id, compid, id_competidor]
+                    [equipe_id, compid, id_org, id_competidor]
                 )
             else:
                 cursor.execute(
                     """
-                    INSERT INTO composicao_equipe_simul (id_equipe, id_competicao, id_competidor, data_hora_inicio)
-                    VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
+                    INSERT INTO composicao_equipe_simul (id_equipe, id_competicao, id_org_competicao, id_competidor, data_hora_inicio)
+                    VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
                     """,
-                    [equipe_id, compid, id_competidor]
+                    [equipe_id, compid, id_org, id_competidor]
                 )
         
         return JsonResponse({"message": "Membro adicionado com sucesso."}, status=201)
@@ -882,3 +925,205 @@ def delete_competition(request):
 
     except Exception as e:
         return JsonResponse({"error": f"Um erro inesperado ocorreu: {e}"}, status=500)
+
+def get_competition_stats(request, compid):
+    is_pred = int(compid) % 2
+    table_sub = 'submissao_equipe_pred' if is_pred else 'submissao_equipe_simul'
+    table_team = 'equipe_pred' if is_pred else 'equipe_simul'
+
+    with connection.cursor() as cursor:
+        cursor.execute(f"SELECT COUNT(*) FROM {table_sub} WHERE id_competicao = %s", [compid])
+        total_submissions = cursor.fetchone()[0]
+
+        cursor.execute(f"SELECT AVG(score) FROM {table_sub} WHERE id_competicao = %s", [compid])
+        avg_score = cursor.fetchone()[0] or 0.0
+
+        cursor.execute(f"SELECT MAX(score) FROM {table_sub} WHERE id_competicao = %s", [compid])
+        best_score = cursor.fetchone()[0] or 0.0
+
+        cursor.execute(
+            f"""
+            SELECT DATE(data_hora_envio) as dia, COUNT(*) 
+            FROM {table_sub} 
+            WHERE id_competicao = %s 
+            GROUP BY dia 
+            ORDER BY dia ASC
+            """, 
+            [compid]
+        )
+        daily_submissions = cursor.fetchall()
+
+        cursor.execute(
+            f"""
+            SELECT MAX(score) 
+            FROM {table_sub} 
+            WHERE id_competicao = %s 
+            GROUP BY id_equipe
+            """, 
+            [compid]
+        )
+        team_scores = [row[0] for row in cursor.fetchall()]
+
+    return JsonResponse({
+        "stats": {
+            "total_submissions": total_submissions,
+            "avg_score": round(avg_score, 4),
+            "best_score": round(best_score, 4),
+            "daily_submissions_dates": [row[0].strftime('%Y-%m-%d') for row in daily_submissions],
+            "daily_submissions_counts": [row[1] for row in daily_submissions],
+            "team_scores": team_scores
+        }
+    })
+
+def get_regras_competition(request, compid):
+    is_pred = int(compid) % 2
+    table_regras = 'competicao_regras_pred' if is_pred else 'competicao_regras_simul'
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"SELECT regra FROM {table_regras} WHERE id_competicao = %s ORDER BY n_ordem",
+            [compid]
+        )
+        regras = [row[0] for row in cursor.fetchall()]
+
+    return JsonResponse({"regras": regras})
+
+@transaction.atomic
+def process_expired_competitions():
+    messages_log = []
+    
+    print("\n=== INICIANDO PROCESSAMENTO DE PREMIAÇÃO (DEBUG) ===")
+
+    with connection.cursor() as cursor:
+        # 1. Busca competições pendentes
+        cursor.execute("""
+            SELECT id_competicao, 'PRED' as tipo FROM competicao_pred 
+            WHERE data_fim <= NOW() AND flg_premiada = false AND flg_deletada = false
+            UNION
+            SELECT id_competicao, 'SIMUL' as tipo FROM competicao_simul 
+            WHERE data_fim <= NOW() AND flg_premiada = false AND flg_deletada = false
+        """)
+        pending_comps = cursor.fetchall()
+
+        if not pending_comps:
+            print(">> Nenhuma competição pendente encontrada.")
+            return "Nenhuma competição pendente."
+
+        for comp_row in pending_comps:
+            compid = comp_row[0]
+            comp_type_str = comp_row[1]
+            is_pred = (comp_type_str == 'PRED')
+            
+            print(f"\n>> Processando Competição ID {compid} ({comp_type_str})")
+
+            table_comp = 'competicao_pred' if is_pred else 'competicao_simul'
+            table_sub = 'submissao_equipe_pred' if is_pred else 'submissao_equipe_simul'
+            table_team = 'equipe_pred' if is_pred else 'equipe_simul'
+            table_members = 'composicao_equipe_pred' if is_pred else 'composicao_equipe_simul'
+            table_prizes = 'premios_competidor_pred' if is_pred else 'premios_competidor_simul'
+
+            cursor.execute(f"SELECT flg_oficial, premiacao, id_org_competicao FROM {table_comp} WHERE id_competicao = %s", [compid])
+            comp_info = cursor.fetchone()
+            
+            is_official = comp_info[0]
+            total_money = comp_info[1]
+            id_org = comp_info[2]
+
+            if is_pred:
+                order_by = "MIN(s.score) ASC" # Menor erro é melhor
+            else:
+                order_by = "MAX(s.score) DESC" # Maior pontuação é melhor
+
+            # Busca Ranking
+            cursor.execute(f"""
+                SELECT e.id
+                FROM {table_sub} s
+                JOIN {table_team} e ON s.id_equipe = e.id
+                WHERE s.id_competicao = %s
+                GROUP BY e.id
+                ORDER BY {order_by}
+            """, [compid])
+            
+            ranked_teams = cursor.fetchall()
+            total_teams = len(ranked_teams)
+            
+            print(f"   Total de equipes com submissão: {total_teams}")
+
+            if total_teams == 0:
+                cursor.execute(f"UPDATE {table_comp} SET flg_premiada = true WHERE id_competicao = %s", [compid])
+                print("   -> Sem equipes. Finalizada sem prêmios.")
+                continue
+
+            # --- CÁLCULO DOS CORTES (REGIÃO CRÍTICA) ---
+            gold_cutoff = 10
+            
+            # Usa ceil para garantir que pelo menos 1 equipe ganhe se a % der quebrado
+            silver_count = math.ceil(total_teams * 0.05) 
+            bronze_count = math.ceil(total_teams * 0.10)
+            
+            silver_cutoff = gold_cutoff + silver_count
+            bronze_cutoff = silver_cutoff + bronze_count
+
+            print(f"   [Regras] Gold até: {gold_cutoff} | Silver até: {silver_cutoff} | Bronze até: {bronze_cutoff}")
+
+            for rank_index, row in enumerate(ranked_teams):
+                team_id = row[0]
+                rank = rank_index + 1
+                
+                print(f"   -> Processando Rank #{rank} (Equipe ID: {team_id})")
+
+                # Busca membros
+                cursor.execute(f"""
+                    SELECT id_competidor FROM {table_members}
+                    WHERE id_equipe = %s AND id_competicao = %s AND data_hora_fim IS NULL
+                """, [team_id, compid])
+                members = cursor.fetchall()
+
+                if not members:
+                    print(f"      AVISO: Equipe {team_id} vazia (sem membros ativos).")
+                    continue
+
+                # Define Medalha
+                medal_type = -1
+                medal_name = "Nenhuma"
+                
+                if rank <= gold_cutoff:
+                    medal_type = 0 
+                    medal_name = "OURO"
+                elif rank <= silver_cutoff:
+                    medal_type = 1 
+                    medal_name = "PRATA"
+                elif rank <= bronze_cutoff:
+                    medal_type = 2 
+                    medal_name = "BRONZE"
+
+                print(f"      Medalha calculada: {medal_name}")
+
+                # Define Dinheiro
+                money_share = 0
+                if rank == 1 and is_official and total_money and float(total_money) > 0:
+                    money_share = float(total_money) / len(members)
+                    print(f"      Prêmio em dinheiro total: {total_money} / {len(members)} membros = {money_share} cada.")
+
+                for member in members:
+                    member_id = member[0]
+                    
+                    if medal_type != -1:
+                        cursor.execute(f"""
+                            INSERT INTO {table_prizes} (id_competidor, id_competicao, id_org_competicao, data_recebimento, tipo, classificacao, valor)
+                            VALUES (%s, %s, %s, CURRENT_DATE, %s, %s, NULL)
+                        """, [member_id, compid, id_org, medal_type, rank])
+                        print(f"      + Inserido prêmio (Medalha) para User {member_id}")
+
+                    if money_share > 0:
+                        cursor.execute(f"""
+                            INSERT INTO {table_prizes} (id_competidor, id_competicao, id_org_competicao, data_recebimento, tipo, classificacao, valor)
+                            VALUES (%s, %s, %s, CURRENT_DATE, 3, %s, %s)
+                        """, [member_id, compid, id_org, 1, money_share])
+                        print(f"      + Inserido prêmio (Dinheiro) para User {member_id}")
+
+            cursor.execute(f"UPDATE {table_comp} SET flg_premiada = true WHERE id_competicao = %s", [compid])
+            messages_log.append(f"Competição {compid}: Processada.")
+
+    print("=== FIM DO PROCESSAMENTO ===\n")
+    return "\n".join(messages_log)

@@ -3,10 +3,9 @@ from django.shortcuts import redirect, render
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
 from api.queries.user_queries import check_if_user_is_organizer, fetch_user_auth_data_by_email, get_all_user, check_user_team_membership
-from api.queries.comp_queries import get_all_competitions, get_team_members
+from api.queries.comp_queries import get_all_competitions, get_team_members, process_expired_competitions
 from datetime import datetime
 from django.utils import timezone
-from django.utils.timesince import timesince
 import requests
 
 def index(request):
@@ -23,28 +22,28 @@ def comp(request):
     default_tz = timezone.get_default_timezone()
     now = timezone.now()
 
-    for comp in competitions_data:
+    for comp_list in competitions_data:
         comp_dict = {
-            'id': comp[0],
-            'titulo': comp[1],
-            'descricao': comp[2],
-            'tipo': comp[3],
-            'organizador': comp[4],
-            'flg_oficial': comp[7],
-            'dificuldade': comp[8],
-            'premiacao': comp[9],
-            'total_equipes': comp[10],
+            'id': comp_list[0],
+            'titulo': comp_list[1],
+            'descricao': comp_list[2],
+            'tipo': comp_list[3],
+            'organizador': comp_list[4],
+            'flg_oficial': comp_list[7],
+            'dificuldade': comp_list[8],
+            'premiacao': comp_list[9],
+            'total_equipes': comp_list[10],
             'data_inicio': None,
             'data_fim': None,
         }
 
         try:
-            naive_start = datetime.fromisoformat(comp[5].replace(" ", "T"))
+            naive_start = datetime.fromisoformat(comp_list[5].replace(" ", "T"))
             comp_dict['data_inicio'] = timezone.make_aware(naive_start, default_tz)
         except (ValueError, TypeError, IndexError):
             pass
         try:
-            naive_end = datetime.fromisoformat(comp[6].replace(" ", "T"))
+            naive_end = datetime.fromisoformat(comp_list[6].replace(" ", "T"))
             comp_dict['data_fim'] = timezone.make_aware(naive_end, default_tz)
         except (ValueError, TypeError, IndexError):
             pass
@@ -56,9 +55,11 @@ def comp(request):
         if end and end < now:
             status_string = "Encerrada"
         elif start and start < now and end and end > now:
+            from django.utils.timesince import timesince
             time_str = timesince(now, end).split(",")[0]
             status_string = f"Encerra em {time_str}"
         elif start and start > now:
+            from django.utils.timesince import timesince
             time_str = timesince(now, start).split(",")[0]
             status_string = f"Começa em {time_str}"
         
@@ -75,6 +76,7 @@ def comp(request):
     context = {
         "competitions" : processed_competitions,
         "is_organizer": is_organizer,
+        "now": now,
         "user_name": user_name
     }
     return render(request, "comp/comp.html", context)
@@ -115,9 +117,6 @@ def comp_form(request):
     return render(request, "comp/comp_form.html", context)
 
 def comp_view(request, compid):
-    api_url = f"http://127.0.0.1:8000/api/comp/verify-end-competition/{compid}/"
-    response = requests.get(api_url)
-
     user_id = request.session.get('user_id')
     equipe_id = None
     team_members = []
@@ -130,11 +129,7 @@ def comp_view(request, compid):
             api_url = f"http://127.0.0.1:8000/api/comp/get-submissions/{compid}/{equipe_id}"
             response = requests.get(api_url)
             submission_data = response.json().get('submissoes', [])
-
-    api_url = f"http://127.0.0.1:8000/api/comp/get-regras/{compid}/"
-    response = requests.get(api_url)
-    regras_data = response.json()["regras"]
-
+    
     api_url = f"http://127.0.0.1:8000/api/comp/get-ranking-comp/{compid}"
     response = requests.get(api_url)
     rank_data = response.json()
@@ -152,15 +147,12 @@ def comp_view(request, compid):
     n_eq = compdata['n_teams'][0]
     n_ca = compdata['n_comp'][0]
     
-    default_tz = timezone.get_default_timezone()
     try:
-        naive_start = datetime.fromisoformat(data[7].replace(" ", "T"))
-        data[7] = timezone.make_aware(naive_start, default_tz)
+        data[7] = datetime.fromisoformat(data[7].replace(" ", "T"))
     except (ValueError, TypeError, IndexError):
         pass
     try:
-        naive_end = datetime.fromisoformat(data[8].replace(" ", "T"))
-        data[8] = timezone.make_aware(naive_end, default_tz)
+        data[8] = datetime.fromisoformat(data[8].replace(" ", "T"))
     except (ValueError, TypeError, IndexError):
         pass
         
@@ -190,8 +182,7 @@ def comp_view(request, compid):
             "current_user_id": user_id,
             "submissoes": submission_data,
             "ranking_top20": ranking_data,
-            "is_competition_organizer": is_competition_organizer,
-            "regras": regras_data
+            "is_competition_organizer": is_competition_organizer
         }
 
     if compid%2:
@@ -252,8 +243,13 @@ def login_view(request):
             request.session['user_id'] = user_data[0]
             request.session['user_name'] = user_data[1]
             
+            # Executa a verificação de competições encerradas
+            try:
+                process_expired_competitions()
+            except Exception as e:
+                print(f"Erro ao processar premiações: {e}")
+
             messages.success(request, 'Login realizado com sucesso!')
-            
             return redirect('main:index')
 
         messages.error(request, 'Email ou senha inválidos.')
@@ -373,34 +369,42 @@ def create_team_view(request, compid):
 def comp_submission(request, compid, equipeid):
     if request.method == 'POST':
         user_id = request.session.get('user_id')
-        if not user_id:
-            messages.error(request, 'Você precisa estar logado para enviar uma submissão.')
-            return redirect('main:login') 
+
+        verified_equipe_id = check_user_team_membership(user_id, compid)
+        if not verified_equipe_id or verified_equipe_id != equipeid:
+             messages.error(request, 'Você não tem permissão para enviar submissões por esta equipe.')
+             return redirect('main:comp-viewer', compid=compid)
+
+        uploaded_file = request.FILES.get('submission-input')
+        if not uploaded_file:
+            messages.error(request, 'Submissão inválida: Nenhum arquivo anexado.')
+            return redirect('main:comp-viewer', compid=compid)
+        # ---------------------------
 
         payload = request.POST.copy()
-        files = request.FILES
-
+        
         try:
             api_url = f"http://127.0.0.1:8000/api/comp/post-submission/{compid}/{equipeid}/"
+            
             response = requests.post(
                 api_url,
                 data=payload,
-                files={'submission-input': files.get('submission-input')}
+                files={'submission-input': uploaded_file} # Usamos o arquivo validado
             )
 
             data = response.json()
 
             if response.status_code == 201:
                 messages.success(request, 'Submissão criada com sucesso!')
-                return redirect('main:comp')
+                return redirect('main:comp-viewer', compid=compid)
             else:
                 error = data.get("error", "Erro desconhecido")
-                messages.error(request, error)
+                messages.error(request, f"Erro na submissão: {error}")
         
         except Exception as e:
             messages.error(request, f"Erro de conexão com a API: {e}")
 
-    return redirect('main:comp')
+    return redirect('main:comp-viewer', compid=compid)
 
 def comp_report_view(request, compid):
     api_url = f"http://127.0.0.1:8000/api/comp/get-competition/{compid}"
@@ -410,10 +414,17 @@ def comp_report_view(request, compid):
     if response.ok and response.json().get('competition'):
         comp_title = response.json()['competition'][0][2]
 
+    api_url_stats = f"http://127.0.0.1:8000/api/comp/get-comp-stats/{compid}/"
+    resp_stats = requests.get(api_url_stats)
+    stats_data = resp_stats.json().get('stats', {})
+
+    import json
     context = {
         "user_name": request.session.get('user_name'),
         "compid": compid,
-        "comp_title": comp_title
+        "comp_title": comp_title,
+        "stats": stats_data,
+        "stats_json": json.dumps(stats_data) 
     }
     return render(request, "reports/comp_report.html", context)
 
@@ -447,3 +458,45 @@ def delete_competition_view(request, compid):
         messages.error(request, f"Erro de conexão com a API: {e}")
 
     return redirect('main:comp-viewer', compid=compid)
+
+def user_report_view(request):
+    user_id = request.session.get('user_id')
+    if not user_id:
+        return redirect('main:login')
+
+    api_url_user = f"http://127.0.0.1:8000/api/user/get-user/{user_id}/"
+    resp_user = requests.get(api_url_user)
+    user_data = resp_user.json().get('users', [[]])[0]
+
+    api_url_prizes = f"http://127.0.0.1:8000/api/user/get-user-prizes/{user_id}/"
+    resp_prizes = requests.get(api_url_prizes)
+    user_prizes = resp_prizes.json().get('user_prizes', [])
+
+    api_url_stats = f"http://127.0.0.1:8000/api/user/get-user-stats/{user_id}/"
+    resp_stats = requests.get(api_url_stats)
+    stats_data = resp_stats.json().get('stats', {})
+
+    import json
+    context = {
+        "user_name": request.session.get('user_name'),
+        "user_data": user_data,
+        "user_prizes": user_prizes,
+        "stats": stats_data,
+        "stats_json": json.dumps(stats_data),
+        "prizes_json": json.dumps([p[1] for p in user_prizes] if user_prizes else [0,0,0,0]) 
+    }
+    return render(request, "user/user_report.html", context)
+
+def user_history_view(request):
+    user_id = request.session.get('user_id')
+    if not user_id:
+        return redirect('main:login')
+
+    from api.queries.user_queries import get_user_history_data
+    history_data = get_user_history_data(user_id)
+
+    context = {
+        "user_name": request.session.get('user_name'),
+        "history": history_data
+    }
+    return render(request, "user/user_history.html", context)

@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Relatório do Usuário{% endblock %}
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'css/user_report.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="report-container">
+    
+    <div class="report-header">
+        <div>
+            <h1>Relatório de Performance</h1>
+            <div class="user-meta">{{ user_data.1 }} ({{ user_data.2 }})</div>
+        </div>
+        <a href="{% url 'main:user-profile' %}" class="btn-back">Voltar ao Perfil</a>
+    </div>
+
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-value">{{ stats.total_competitions }}</div>
+            <div class="kpi-label">Competições</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-value">{{ stats.total_submissions }}</div>
+            <div class="kpi-label">Submissões Totais</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-value">{{ user_prizes.0.1 }}</div>
+            <div class="kpi-label">Medalhas de Ouro</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-value">R$ {{ user_prizes.3.1 }}</div>
+            <div class="kpi-label">Total em Prêmios</div>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+        <div class="chart-card">
+            <div class="chart-title">Histórico de Atividade (Últimos 30 dias)</div>
+            <canvas id="activityChart"></canvas>
+        </div>
+        <div class="chart-card">
+            <div class="chart-title">Perfil de Participação</div>
+            <div style="height: 300px; display: flex; justify-content: center;">
+                <canvas id="typeChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="charts-grid">
+        <div class="chart-card" style="grid-column: span 2;">
+            <div class="chart-title">Distribuição de Medalhas</div>
+            <div style="height: 300px; display: flex; justify-content: center;">
+                <canvas id="medalsChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const stats = JSON.parse('{{ stats_json|escapejs }}');
+        const prizes = JSON.parse('{{ prizes_json|escapejs }}');
+
+        new Chart(document.getElementById('activityChart'), {
+            type: 'line',
+            data: {
+                labels: stats.activity_dates,
+                datasets: [{
+                    label: 'Submissões',
+                    data: stats.activity_counts,
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+            }
+        });
+
+        new Chart(document.getElementById('typeChart'), {
+            type: 'doughnut',
+            data: {
+                labels: stats.type_labels,
+                datasets: [{
+                    data: stats.type_counts,
+                    backgroundColor: ['#6610f2', '#20c997'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        new Chart(document.getElementById('medalsChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Ouro', 'Prata', 'Bronze'],
+                datasets: [{
+                    label: 'Quantidade',
+                    data: [prizes[0], prizes[1], prizes[2]],
+                    backgroundColor: ['#ffc107', '#adb5bd', '#cd7f32'],
+                    borderRadius: 6,
+                    barThickness: 60
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+            }
+        });
+    });
+</script>
+{% endblock %}
