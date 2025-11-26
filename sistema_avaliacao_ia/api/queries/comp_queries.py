@@ -9,6 +9,7 @@ from django.contrib.auth.hashers import make_password
 import pandas as pd
 import numpy as np
 from django.conf import settings
+import math
 
 def rmse_from_csv(file1, file2):
 
@@ -983,3 +984,142 @@ def get_regras_competition(request, compid):
 
     return JsonResponse({"regras": regras})
 
+@transaction.atomic
+def process_expired_competitions():
+    messages_log = []
+    
+    print("\n=== INICIANDO PROCESSAMENTO DE PREMIAÇÃO (DEBUG) ===")
+
+    with connection.cursor() as cursor:
+        # 1. Busca competições pendentes
+        cursor.execute("""
+            SELECT id_competicao, 'PRED' as tipo FROM competicao_pred 
+            WHERE data_fim <= NOW() AND flg_premiada = false AND flg_deletada = false
+            UNION
+            SELECT id_competicao, 'SIMUL' as tipo FROM competicao_simul 
+            WHERE data_fim <= NOW() AND flg_premiada = false AND flg_deletada = false
+        """)
+        pending_comps = cursor.fetchall()
+
+        if not pending_comps:
+            print(">> Nenhuma competição pendente encontrada.")
+            return "Nenhuma competição pendente."
+
+        for comp_row in pending_comps:
+            compid = comp_row[0]
+            comp_type_str = comp_row[1]
+            is_pred = (comp_type_str == 'PRED')
+            
+            print(f"\n>> Processando Competição ID {compid} ({comp_type_str})")
+
+            table_comp = 'competicao_pred' if is_pred else 'competicao_simul'
+            table_sub = 'submissao_equipe_pred' if is_pred else 'submissao_equipe_simul'
+            table_team = 'equipe_pred' if is_pred else 'equipe_simul'
+            table_members = 'composicao_equipe_pred' if is_pred else 'composicao_equipe_simul'
+            table_prizes = 'premios_competidor_pred' if is_pred else 'premios_competidor_simul'
+
+            cursor.execute(f"SELECT flg_oficial, premiacao, id_org_competicao FROM {table_comp} WHERE id_competicao = %s", [compid])
+            comp_info = cursor.fetchone()
+            
+            is_official = comp_info[0]
+            total_money = comp_info[1]
+            id_org = comp_info[2]
+
+            if is_pred:
+                order_by = "MIN(s.score) ASC" # Menor erro é melhor
+            else:
+                order_by = "MAX(s.score) DESC" # Maior pontuação é melhor
+
+            # Busca Ranking
+            cursor.execute(f"""
+                SELECT e.id
+                FROM {table_sub} s
+                JOIN {table_team} e ON s.id_equipe = e.id
+                WHERE s.id_competicao = %s
+                GROUP BY e.id
+                ORDER BY {order_by}
+            """, [compid])
+            
+            ranked_teams = cursor.fetchall()
+            total_teams = len(ranked_teams)
+            
+            print(f"   Total de equipes com submissão: {total_teams}")
+
+            if total_teams == 0:
+                cursor.execute(f"UPDATE {table_comp} SET flg_premiada = true WHERE id_competicao = %s", [compid])
+                print("   -> Sem equipes. Finalizada sem prêmios.")
+                continue
+
+            # --- CÁLCULO DOS CORTES (REGIÃO CRÍTICA) ---
+            gold_cutoff = 10
+            
+            # Usa ceil para garantir que pelo menos 1 equipe ganhe se a % der quebrado
+            silver_count = math.ceil(total_teams * 0.05) 
+            bronze_count = math.ceil(total_teams * 0.10)
+            
+            silver_cutoff = gold_cutoff + silver_count
+            bronze_cutoff = silver_cutoff + bronze_count
+
+            print(f"   [Regras] Gold até: {gold_cutoff} | Silver até: {silver_cutoff} | Bronze até: {bronze_cutoff}")
+
+            for rank_index, row in enumerate(ranked_teams):
+                team_id = row[0]
+                rank = rank_index + 1
+                
+                print(f"   -> Processando Rank #{rank} (Equipe ID: {team_id})")
+
+                # Busca membros
+                cursor.execute(f"""
+                    SELECT id_competidor FROM {table_members}
+                    WHERE id_equipe = %s AND id_competicao = %s AND data_hora_fim IS NULL
+                """, [team_id, compid])
+                members = cursor.fetchall()
+
+                if not members:
+                    print(f"      AVISO: Equipe {team_id} vazia (sem membros ativos).")
+                    continue
+
+                # Define Medalha
+                medal_type = -1
+                medal_name = "Nenhuma"
+                
+                if rank <= gold_cutoff:
+                    medal_type = 0 
+                    medal_name = "OURO"
+                elif rank <= silver_cutoff:
+                    medal_type = 1 
+                    medal_name = "PRATA"
+                elif rank <= bronze_cutoff:
+                    medal_type = 2 
+                    medal_name = "BRONZE"
+
+                print(f"      Medalha calculada: {medal_name}")
+
+                # Define Dinheiro
+                money_share = 0
+                if rank == 1 and is_official and total_money and float(total_money) > 0:
+                    money_share = float(total_money) / len(members)
+                    print(f"      Prêmio em dinheiro total: {total_money} / {len(members)} membros = {money_share} cada.")
+
+                for member in members:
+                    member_id = member[0]
+                    
+                    if medal_type != -1:
+                        cursor.execute(f"""
+                            INSERT INTO {table_prizes} (id_competidor, id_competicao, id_org_competicao, data_recebimento, tipo, classificacao, valor)
+                            VALUES (%s, %s, %s, CURRENT_DATE, %s, %s, NULL)
+                        """, [member_id, compid, id_org, medal_type, rank])
+                        print(f"      + Inserido prêmio (Medalha) para User {member_id}")
+
+                    if money_share > 0:
+                        cursor.execute(f"""
+                            INSERT INTO {table_prizes} (id_competidor, id_competicao, id_org_competicao, data_recebimento, tipo, classificacao, valor)
+                            VALUES (%s, %s, %s, CURRENT_DATE, 3, %s, %s)
+                        """, [member_id, compid, id_org, 1, money_share])
+                        print(f"      + Inserido prêmio (Dinheiro) para User {member_id}")
+
+            cursor.execute(f"UPDATE {table_comp} SET flg_premiada = true WHERE id_competicao = %s", [compid])
+            messages_log.append(f"Competição {compid}: Processada.")
+
+    print("=== FIM DO PROCESSAMENTO ===\n")
+    return "\n".join(messages_log)

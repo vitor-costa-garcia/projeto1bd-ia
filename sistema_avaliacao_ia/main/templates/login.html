@@ -28,13 +28,35 @@
                 <label for="senha">Senha:</label>
                 <input type="password" id="senha" name="senha" required>
             </div>
-            <button type="submit" class="btn-outline-dark" style="margin-top: 1rem;">Entrar</button>
+            <button type="submit" class="btn-outline-dark"
+            style="margin-top: 1rem;">Entrar</button>
         </form>
-        <p style="margin-top: 1.5rem;">Não tem uma conta?</p>
+        <p>Não tem uma conta?</p>
         <a href="{% url 'main:register' %}">
             <button>Registrar-se</button>
         </a>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const messages = document.querySelectorAll('.messages li');
+            if (messages.length > 0) {
+                setTimeout(function() {
+                    messages.forEach(function(msg) {
+                        msg.style.transition = "opacity 0.5s ease";
+                        msg.style.opacity = "0";
+                        setTimeout(function() {
+                            msg.remove();
+                            const list = document.querySelector('.messages');
+                            if (list && list.children.length === 0) {
+                                list.remove();
+                            }
+                        }, 500);
+                    });
+                }, 5000);
+            }
+        });
+    </script>
 
 </body>
 </html>
