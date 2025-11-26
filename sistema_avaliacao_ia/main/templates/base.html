@@ -61,6 +61,28 @@
                 }, 5000); // 5000 milissegundos = 5 segundos
             }
         });
+
+        (function() {
+            const idleDuration = 900000; 
+            let idleTimer;
+
+            const resetTimer = () => {
+                clearTimeout(idleTimer);
+                idleTimer = setTimeout(() => {
+                    alert("Sua sessão expirou por inatividade.");
+                    window.location.href = "{% url 'main:logout' %}";
+                }, idleDuration);
+            };
+
+            window.onload = resetTimer;
+            window.onmousemove = resetTimer;
+            window.onmousedown = resetTimer;
+            window.ontouchstart = resetTimer;
+            window.onclick = resetTimer;
+            window.onkeypress = resetTimer;
+            window.addEventListener('scroll', resetTimer, true);
+
+        })();
     </script>
 </body>
 </html>
