@@ -57,7 +57,7 @@ body {
 }
 
 .card-image-placeholder {
-    height: 60px;
+    height:15px;
     background: linear-gradient(135deg, #007bff, #e9ecef);
     display: grid;
     place-items: center;

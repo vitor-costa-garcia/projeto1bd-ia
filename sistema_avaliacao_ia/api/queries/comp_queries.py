@@ -42,7 +42,8 @@ def get_all_competitions(request):
                         A.flg_oficial,
                         A.dificuldade,
                         A.premiacao,
-                        COALESCE(EQ.team_count, 0) AS total_equipes
+                        COALESCE(EQ.team_count, 0) AS total_equipes,
+                        A.data_criacao
                     FROM
                         competicao_pred A
                     JOIN 
@@ -67,7 +68,8 @@ def get_all_competitions(request):
                         A.flg_oficial,
                         A.dificuldade,
                         A.premiacao,
-                        COALESCE(EQ.team_count, 0) AS total_equipes
+                        COALESCE(EQ.team_count, 0) AS total_equipes,
+                        A.data_criacao
                     FROM
                         competicao_simul A
                     JOIN 
@@ -78,6 +80,8 @@ def get_all_competitions(request):
                          GROUP BY id_competicao) AS EQ
                     ON A.id_competicao = EQ.id_competicao
                     WHERE A.flg_deletada = false
+
+                    ORDER BY data_criacao DESC
                     """
                     )
 

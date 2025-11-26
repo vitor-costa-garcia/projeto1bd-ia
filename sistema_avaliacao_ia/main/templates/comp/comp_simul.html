@@ -103,7 +103,7 @@
             >
                 {% csrf_token %}
                 <input type="hidden" name="comp_hidden" value="{{ compid }}">
-                <input type="file" accept=".py" name="submission-input" class="submission-form-file">
+                <input type="file" accept=".py" name="submission-input" class="submission-form-file" required>
                 <button type="submit">Enviar Submissão</button>
             </form>
         </div>

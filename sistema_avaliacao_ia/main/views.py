@@ -369,24 +369,27 @@ def create_team_view(request, compid):
 def comp_submission(request, compid, equipeid):
     if request.method == 'POST':
         user_id = request.session.get('user_id')
-        if not user_id:
-            messages.error(request, 'Você precisa estar logado para enviar uma submissão.')
-            return redirect('main:login') 
 
         verified_equipe_id = check_user_team_membership(user_id, compid)
         if not verified_equipe_id or verified_equipe_id != equipeid:
              messages.error(request, 'Você não tem permissão para enviar submissões por esta equipe.')
              return redirect('main:comp-viewer', compid=compid)
 
-        payload = request.POST.copy()
-        files = request.FILES
+        uploaded_file = request.FILES.get('submission-input')
+        if not uploaded_file:
+            messages.error(request, 'Submissão inválida: Nenhum arquivo anexado.')
+            return redirect('main:comp-viewer', compid=compid)
+        # ---------------------------
 
+        payload = request.POST.copy()
+        
         try:
             api_url = f"http://127.0.0.1:8000/api/comp/post-submission/{compid}/{equipeid}/"
+            
             response = requests.post(
                 api_url,
                 data=payload,
-                files={'submission-input': files.get('submission-input')}
+                files={'submission-input': uploaded_file} # Usamos o arquivo validado
             )
 
             data = response.json()
@@ -396,7 +399,7 @@ def comp_submission(request, compid, equipeid):
                 return redirect('main:comp-viewer', compid=compid)
             else:
                 error = data.get("error", "Erro desconhecido")
-                messages.error(request, error)
+                messages.error(request, f"Erro na submissão: {error}")
         
         except Exception as e:
             messages.error(request, f"Erro de conexão com a API: {e}")
