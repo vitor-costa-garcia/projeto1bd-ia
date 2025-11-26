@@ -163,23 +163,28 @@ def get_user_prizes(request, userid):
         cursor.execute(
             """
             WITH todos_premios AS (
-                SELECT tipo FROM premios_competidor_pred WHERE id_competidor = %s
+                SELECT tipo, valor FROM premios_competidor_pred WHERE id_competidor = %s
                 UNION ALL
-                SELECT tipo FROM premios_competidor_simul WHERE id_competidor = %s
+                SELECT tipo, valor FROM premios_competidor_simul WHERE id_competidor = %s
             ),
             tipos AS (
                 SELECT * FROM (VALUES (0), (1), (2), (3)) AS t(tipo)
             )
             SELECT
                 t.tipo,
-                COALESCE(COUNT(tp.tipo), 0) AS total
+                CASE 
+                    WHEN t.tipo = 3 THEN COALESCE(SUM(tp.valor), 0)
+                    ELSE COALESCE(COUNT(tp.tipo), 0)
+                END as total
             FROM
                 tipos t
             LEFT JOIN
                 todos_premios tp
                 ON t.tipo = tp.tipo
             GROUP BY
-                t.tipo;
+                t.tipo
+            ORDER BY 
+                t.tipo ASC;
             """,
             [userid, userid]
         )
