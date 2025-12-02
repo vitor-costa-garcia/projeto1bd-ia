@@ -23,9 +23,7 @@ Os competidores podem receber premiações dependendo de seu desempenho em certa
 
 ### Modelo conceitual
 
-
-<img width="1283" height="803" alt="MER-bd1" src="https://github.com/user-attachments/assets/991ad1a4-12fe-4917-98ab-b5176bee23a4" />
-
+<img width="1256" height="782" alt="image" src="https://github.com/user-attachments/assets/ff8db08f-0b4a-49ba-89e2-2369fb8b2d92" />
 
 ### Modelo relacional
 
